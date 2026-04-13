@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Sentence Slicing Template</title>
+  <title>Vocabulary Slicing Template</title>
   <style>
     :root {
       --bg1: #0f172a;
@@ -170,12 +170,12 @@
   <div class="app">
     <section class="panel topbar">
       <div>
-        <h1 class="title">Sentence Slicing Template</h1>
-        <p class="sub">Swipe across a space between words to split the sentence. Slicing through a word is blocked.</p>
+        <h1 class="title">Vocabulary Slicing Template</h1>
+        <p class="sub">Load a target vocabulary word and slice between individual characters. Hyphens are treated as their own sliceable characters.</p>
       </div>
       <div class="controls">
-        <input id="sentenceInput" type="text" value="After the rain stopped, the children played soccer in the park yesterday." />
-        <button id="loadBtn">Load Sentence</button>
+        <input id="sentenceInput" type="text" value="vocabulary" />
+        <button id="loadBtn">Load Word</button>
         <button id="resetBtn" class="secondary">Reset Cuts</button>
       </div>
     </section>
@@ -188,8 +188,9 @@
       <div class="panel legend">
         <h2>How it works</h2>
         <ul>
-          <li>Swipe across a legal boundary between words to split a strip.</li>
-          <li>Slicing through the body of a word is rejected.</li>
+          <li>Each character in the target vocabulary word becomes its own slice unit.</li>
+          <li>Hyphens stay in the sequence and can be sliced on either side.</li>
+          <li>Slicing through the body of a character tile is rejected.</li>
           <li>Drag horizontally on a row frame to inspect long content.</li>
           <li>This template only keeps the slicing window and related logic.</li>
         </ul>
@@ -235,10 +236,10 @@
     let panAnchorX = 0;
     let panStartScroll = 0;
     let nextChunkId = 1;
-    let currentSentence = '';
+    let currentWord = '';
 
-    function tokenize(sentence) {
-      return sentence.trim().split(/\s+/).filter(Boolean);
+    function tokenize(word) {
+      return word.replace(/\s+/g, '').split('').filter(Boolean);
     }
 
     function createChunk(words, start, end) {
@@ -253,12 +254,12 @@
       });
     }
 
-    function buildInitialRows(sentence) {
-      const words = tokenize(sentence);
-      if (!words.length) return [];
+    function buildInitialRows(word) {
+      const letters = tokenize(word);
+      if (!letters.length) return [];
       return [{
         type: 'chunk',
-        chunk: createChunk(words, 0, words.length),
+        chunk: createChunk(letters, 0, letters.length),
         scrollX: 0,
         y: 95,
         targetY: 95
@@ -587,9 +588,9 @@
           color: 'rgba(252,165,165,0.95)'
         };
         spawnParticles((a.x + b.x) / 2, (a.y + b.y) / 2, 'rgba(252,165,165,0.95)');
-        setStatus('Blocked: you sliced through a word body. Try cutting at a space between words.', 'bad');
+        setStatus('Blocked: you sliced through a character tile. Try cutting between characters.', 'bad');
       } else {
-        setStatus('No legal cut detected. Swipe closer to a space between words.', 'bad');
+        setStatus('No legal cut detected. Swipe closer to a gap between characters.', 'bad');
       }
     }
 
@@ -627,7 +628,7 @@
         color: 'rgba(134,239,172,0.95)'
       };
       spawnParticles(flashX, entry.y + chunk.h / 2, 'rgba(134,239,172,0.95)');
-      setStatus('Nice cut. The sentence strip split at a legal word boundary.', 'good');
+      setStatus('Nice cut. The word strip split at a legal character boundary.', 'good');
     }
 
     function getPos(evt) {
@@ -713,10 +714,12 @@
     }
 
     function loadSentence() {
-      currentSentence = sentenceInput.value.trim();
-      rows = buildInitialRows(currentSentence);
+      currentWord = sentenceInput.value.replace(/\s+/g, '');
+      sentenceInput.value = currentWord || 'vocabulary';
+      currentWord = sentenceInput.value;
+      rows = buildInitialRows(currentWord);
       layoutRows();
-      setStatus('Sentence loaded.');
+      setStatus('Vocabulary word loaded.');
     }
 
     function animate() {
