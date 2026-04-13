@@ -73,7 +73,47 @@
       align-items: center;
     }
 
+    .modeBar {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .modeBtn {
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 999px;
+      padding: 9px 14px;
+      background: rgba(255,255,255,0.08);
+      color: var(--text);
+      font-size: 0.92rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 180ms ease, border-color 180ms ease, transform 180ms ease;
+    }
+
+    .modeBtn.active {
+      background: linear-gradient(135deg, rgba(125,211,252,0.95), rgba(192,132,252,0.95));
+      border-color: rgba(255,255,255,0.2);
+      color: #082032;
+    }
+
+    .modeBtn:hover {
+      transform: translateY(-1px);
+    }
+
     input[type="text"] {
+      width: 100%;
+      padding: 12px 14px;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,0.16);
+      background: rgba(255,255,255,0.08);
+      color: var(--text);
+      font-size: 1rem;
+      outline: none;
+    }
+
+    select {
       width: 100%;
       padding: 12px 14px;
       border-radius: 12px;
@@ -103,6 +143,50 @@
 
     .stageWrap {
       padding: 14px;
+      position: relative;
+    }
+
+    .studyBar {
+      display: grid;
+      grid-template-columns: minmax(220px, 320px) auto auto;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .studyBar button {
+      white-space: nowrap;
+    }
+
+    .modalBackdrop {
+      position: fixed;
+      inset: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      background: rgba(2, 6, 23, 0.68);
+      padding: 20px;
+      z-index: 20;
+    }
+
+    .modalBackdrop.open {
+      display: flex;
+    }
+
+    .modalCard {
+      width: min(420px, 100%);
+      padding: 18px;
+      border-radius: 18px;
+      background: rgba(15,23,42,0.96);
+      border: 1px solid rgba(255,255,255,0.12);
+      box-shadow: 0 24px 50px rgba(0,0,0,0.35);
+      display: grid;
+      gap: 14px;
+    }
+
+    .modalActions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
     }
 
     canvas {
@@ -111,6 +195,82 @@
       display: block;
       border-radius: 16px;
       background: linear-gradient(180deg, rgba(255,255,255,0.035), rgba(255,255,255,0.02));
+    }
+
+    .rowControlsLayer {
+      position: absolute;
+      inset: 14px;
+      pointer-events: none;
+    }
+
+    .rowControl {
+      position: absolute;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      pointer-events: auto;
+      transform: translateY(-50%);
+    }
+
+    .rowInputWrap {
+      display: block;
+    }
+
+    .rowEditInput {
+      width: 120px;
+      height: 48px;
+      padding: 9px 12px;
+      border-radius: 14px;
+      border: 1.5px solid rgba(255,255,255,0.16);
+      background: rgba(148, 163, 184, 0.22);
+      color: rgba(226,232,240,0.96);
+      font-size: 24px;
+      outline: none;
+      box-sizing: border-box;
+    }
+
+    .iconBtn {
+      width: 42px;
+      height: 42px;
+      padding: 0;
+      border-radius: 12px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text);
+      background: rgba(15,23,42,0.72);
+      border: 1px solid rgba(255,255,255,0.16);
+    }
+
+    .iconBtn svg {
+      width: 18px;
+      height: 18px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .iconBtn:hover {
+      background: rgba(30,41,59,0.96);
+      transform: translateY(-1px);
+    }
+
+    .editToggle,
+    .editActions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+
+    .rowControl:not(.is-editing) .editActions {
+      display: none;
+    }
+
+    .rowControl.is-editing .editToggle {
+      display: none;
     }
 
     .info {
@@ -162,6 +322,7 @@
 
     @media (max-width: 900px) {
       .controls { grid-template-columns: 1fr 1fr; }
+      .studyBar { grid-template-columns: 1fr; }
       .info { grid-template-columns: 1fr; }
     }
   </style>
@@ -171,17 +332,28 @@
     <section class="panel topbar">
       <div>
         <h1 class="title">Vocabulary Slicing Template</h1>
-        <p class="sub">Load a target vocabulary word and slice between individual characters. Hyphens are treated as their own sliceable characters.</p>
+        <p class="sub">Load a target vocabulary word and work in auto, slice, or lasso mode. Hyphens are treated as their own sliceable characters.</p>
+      </div>
+      <div id="modeBar" class="modeBar">
+        <button type="button" class="modeBtn active" data-mode="auto">Auto</button>
+        <button type="button" class="modeBtn" data-mode="slice">Slice</button>
+        <button type="button" class="modeBtn" data-mode="lasso">Lasso</button>
       </div>
       <div class="controls">
         <input id="sentenceInput" type="text" value="vocabulary" />
         <button id="loadBtn">Load Word</button>
         <button id="resetBtn" class="secondary">Reset Cuts</button>
       </div>
+      <div class="studyBar">
+        <select id="studySetSelect"></select>
+        <button id="saveToSetBtn" type="button">Save Word To Study Set</button>
+        <button id="saveToNewSetBtn" type="button" class="secondary">Save To New Study Set</button>
+      </div>
     </section>
 
     <section class="panel stageWrap">
       <canvas id="stage"></canvas>
+      <div id="rowControlsLayer" class="rowControlsLayer"></div>
     </section>
 
     <section class="info">
@@ -189,6 +361,8 @@
         <h2>How it works</h2>
         <ul>
           <li>Each character in the target vocabulary word becomes its own slice unit.</li>
+          <li>Auto mode detects a mostly one-direction stroke as slicing and a looping path as lassoing.</li>
+          <li>Lasso closes itself with a straight line if the path does not fully reconnect.</li>
           <li>Hyphens stay in the sequence and can be sliced on either side.</li>
           <li>Slicing through the body of a character tile is rejected.</li>
           <li>Drag horizontally on a row frame to inspect long content.</li>
@@ -203,14 +377,37 @@
     </section>
   </div>
 
+  <div id="newSetModal" class="modalBackdrop" aria-hidden="true">
+    <div class="modalCard">
+      <div>
+        <h2>Create Study Set</h2>
+        <p class="sub">Create a new study set and save the current word to it.</p>
+      </div>
+      <input id="newSetNameInput" type="text" placeholder="Study set name" />
+      <div class="modalActions">
+        <button id="cancelNewSetBtn" type="button" class="secondary">Cancel</button>
+        <button id="confirmNewSetBtn" type="button">Create And Save</button>
+      </div>
+    </div>
+  </div>
+
   <script>
     const canvas = document.getElementById('stage');
     const ctx = canvas.getContext('2d');
     const sentenceInput = document.getElementById('sentenceInput');
     const loadBtn = document.getElementById('loadBtn');
     const resetBtn = document.getElementById('resetBtn');
+    const studySetSelect = document.getElementById('studySetSelect');
+    const saveToSetBtn = document.getElementById('saveToSetBtn');
+    const saveToNewSetBtn = document.getElementById('saveToNewSetBtn');
+    const newSetModal = document.getElementById('newSetModal');
+    const newSetNameInput = document.getElementById('newSetNameInput');
+    const cancelNewSetBtn = document.getElementById('cancelNewSetBtn');
+    const confirmNewSetBtn = document.getElementById('confirmNewSetBtn');
     const chunkList = document.getElementById('chunkList');
     const statusEl = document.getElementById('status');
+    const modeBar = document.getElementById('modeBar');
+    const rowControlsLayer = document.getElementById('rowControlsLayer');
 
     const DPR = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
     const FONT = '24px Arial';
@@ -224,6 +421,18 @@
     const ROW_GAP = 48;
     const ROW_MARGIN = 24;
     const ROW_FRAME = 16;
+    const ANNOTATION_GAP = 12;
+    const ANNOTATION_PAD_X = 16;
+    const ANNOTATION_MIN_W = 72;
+    const ANNOTATION_MAX_W = 320;
+    const ANNOTATION_MAX_FONT = 24;
+    const ANNOTATION_MIN_FONT = 14;
+    const NOTE_BUTTON_W = 42;
+    const NOTE_BUTTON_GAP = 8;
+    const LASSO_CLOSE_RADIUS = 28;
+    const GESTURE_POINT_LIMIT = 96;
+    const MIN_SEGMENT_LENGTH = 12;
+    const STUDY_SET_STORAGE_KEY = 'vocabulary-slicing-study-sets';
 
     let rows = [];
     let particles = [];
@@ -236,7 +445,9 @@
     let panAnchorX = 0;
     let panStartScroll = 0;
     let nextChunkId = 1;
+    let nextRowId = 1;
     let currentWord = '';
+    let currentMode = 'auto';
 
     function tokenize(word) {
       return word.replace(/\s+/g, '').split('').filter(Boolean);
@@ -248,22 +459,84 @@
         words,
         start,
         end,
+        hasNote: false,
+        noteText: '',
+        isEditing: false,
+        editDraft: '',
         w: 0,
         h: STRIP_H,
         layout: null
       });
     }
 
+    function createRowFromChunks(items) {
+      const row = {
+        id: nextRowId++,
+        scrollX: 0,
+        y: null,
+        targetY: 0,
+        rowH: STRIP_H + ROW_FRAME * 2,
+        contentW: 0
+      };
+      setRowItems(row, items);
+      return row;
+    }
+
+    function getRowItems(row) {
+      return row.type === 'chunk' ? [row.chunk] : row.items;
+    }
+
+    function getChunkNoteLayout(chunk, rowViewportW = getWorkWidth() - ROW_MARGIN * 2 - ROW_FRAME * 2) {
+      if (!chunk.hasNote) return null;
+      const sourceText = chunk.isEditing ? chunk.editDraft : chunk.noteText;
+      const text = (sourceText || '').trim();
+      const totalWidthLimit = rowViewportW * 0.9;
+      const noteWidthLimit = Math.max(
+        ANNOTATION_MIN_W,
+        Math.min(
+          ANNOTATION_MAX_W,
+          totalWidthLimit - chunk.w - ANNOTATION_GAP - NOTE_BUTTON_GAP - NOTE_BUTTON_W
+        )
+      );
+
+      if (!text) {
+        return {
+          text: '',
+          fontSize: ANNOTATION_MAX_FONT,
+          width: Math.min(ANNOTATION_MIN_W, noteWidthLimit),
+          height: STRIP_H - 20
+        };
+      }
+
+      let fontSize = ANNOTATION_MAX_FONT;
+      let textWidth = 0;
+
+      for (; fontSize >= ANNOTATION_MIN_FONT; fontSize--) {
+        ctx.font = `${fontSize}px Arial`;
+        textWidth = ctx.measureText(text).width;
+        if (textWidth + ANNOTATION_PAD_X * 2 <= noteWidthLimit) break;
+      }
+
+      const width = Math.max(ANNOTATION_MIN_W, Math.min(noteWidthLimit, textWidth + ANNOTATION_PAD_X * 2));
+      return { text, fontSize, width, height: STRIP_H - 20 };
+    }
+
+    function setRowItems(row, items) {
+      if (items.length <= 1) {
+        row.type = 'chunk';
+        row.chunk = items[0] || createChunk([], 0, 0);
+        delete row.items;
+      } else {
+        row.type = 'multi';
+        row.items = items;
+        delete row.chunk;
+      }
+    }
+
     function buildInitialRows(word) {
       const letters = tokenize(word);
       if (!letters.length) return [];
-      return [{
-        type: 'chunk',
-        chunk: createChunk(letters, 0, letters.length),
-        scrollX: 0,
-        y: 95,
-        targetY: 95
-      }];
+      return [createRowFromChunks([createChunk(letters, 0, letters.length)])];
     }
 
     function resizeCanvas() {
@@ -283,6 +556,110 @@
           statusEl.className = 'status';
         }, 1800);
       }
+    }
+
+    function getCurrentWordForSaving() {
+      const value = sentenceInput.value.replace(/\s+/g, '').trim();
+      return value || currentWord || 'vocabulary';
+    }
+
+    function loadStudySets() {
+      try {
+        const raw = localStorage.getItem(STUDY_SET_STORAGE_KEY);
+        const parsed = raw ? JSON.parse(raw) : [];
+        return Array.isArray(parsed) ? parsed : [];
+      } catch {
+        return [];
+      }
+    }
+
+    function persistStudySets(studySets) {
+      localStorage.setItem(STUDY_SET_STORAGE_KEY, JSON.stringify(studySets));
+    }
+
+    function renderStudySetOptions(selectedName = '') {
+      const studySets = loadStudySets();
+      studySetSelect.innerHTML = '';
+
+      if (!studySets.length) {
+        const option = document.createElement('option');
+        option.value = '';
+        option.textContent = 'No study sets yet';
+        studySetSelect.appendChild(option);
+        studySetSelect.disabled = true;
+        saveToSetBtn.disabled = true;
+        return;
+      }
+
+      for (const set of studySets) {
+        const option = document.createElement('option');
+        option.value = set.name;
+        option.textContent = `${set.name} (${set.words.length})`;
+        studySetSelect.appendChild(option);
+      }
+
+      studySetSelect.disabled = false;
+      saveToSetBtn.disabled = false;
+      if (selectedName && studySets.some((set) => set.name === selectedName)) {
+        studySetSelect.value = selectedName;
+      }
+    }
+
+    function saveWordToStudySet(setName) {
+      const word = getCurrentWordForSaving();
+      const trimmedName = (setName || '').trim();
+      if (!trimmedName) {
+        setStatus('Choose a study set first.', 'bad');
+        return false;
+      }
+
+      const studySets = loadStudySets();
+      const targetSet = studySets.find((set) => set.name === trimmedName);
+      if (!targetSet) {
+        setStatus('Selected study set was not found.', 'bad');
+        renderStudySetOptions();
+        return false;
+      }
+
+      if (!targetSet.words.includes(word)) targetSet.words.push(word);
+      persistStudySets(studySets);
+      renderStudySetOptions(trimmedName);
+      setStatus(`Saved "${word}" to ${trimmedName}.`, 'good');
+      return true;
+    }
+
+    function openNewSetModal() {
+      newSetNameInput.value = '';
+      newSetModal.classList.add('open');
+      newSetModal.setAttribute('aria-hidden', 'false');
+      newSetNameInput.focus();
+    }
+
+    function closeNewSetModal() {
+      newSetModal.classList.remove('open');
+      newSetModal.setAttribute('aria-hidden', 'true');
+    }
+
+    function createNewStudySet() {
+      const name = newSetNameInput.value.trim();
+      if (!name) {
+        setStatus('Enter a name for the new study set.', 'bad');
+        newSetNameInput.focus();
+        return;
+      }
+
+      const studySets = loadStudySets();
+      if (studySets.some((set) => set.name.toLowerCase() === name.toLowerCase())) {
+        setStatus('That study set already exists.', 'bad');
+        newSetNameInput.focus();
+        return;
+      }
+
+      studySets.push({ name, words: [] });
+      persistStudySets(studySets);
+      renderStudySetOptions(name);
+      closeNewSetModal();
+      saveWordToStudySet(name);
     }
 
     function measureChunkLayout(chunk) {
@@ -317,8 +694,11 @@
     }
 
     function getRowContentWidth(row) {
-      if (row.type === 'chunk') return row.chunk.w;
-      return row.items.reduce((sum, item, i) => sum + item.w + (i ? SPLIT_GAP : 0), 0);
+      return getRowItems(row).reduce((sum, item, i) => {
+        const note = getChunkNoteLayout(item);
+        const extra = note ? ANNOTATION_GAP + note.width + NOTE_BUTTON_GAP + NOTE_BUTTON_W : 0;
+        return sum + item.w + extra + (i ? SPLIT_GAP : 0);
+      }, 0);
     }
 
     function ensureRowScrollBounds(row) {
@@ -327,7 +707,7 @@
       row.scrollX = Math.max(0, Math.min(maxScroll, row.scrollX || 0));
     }
 
-    function layoutRows() {
+    function layoutRows(renderControls = true) {
       let y = 88;
       for (const row of rows) {
         if (row.y == null) row.y = y;
@@ -345,6 +725,7 @@
       }
 
       updateChunkList();
+      if (renderControls) renderRowControls();
     }
 
     function updateChunkList() {
@@ -352,11 +733,7 @@
       for (const row of rows) {
         const div = document.createElement('div');
         div.className = 'chip';
-        if (row.type === 'chunk') {
-          div.textContent = row.chunk.words.join(' ');
-        } else {
-          div.textContent = row.items.map((item) => item.words.join(' ')).join(' | ');
-        }
+        div.textContent = getRowItems(row).map((item) => item.words.join(' ')).join(' | ');
         chunkList.appendChild(div);
       }
     }
@@ -403,6 +780,23 @@
       }
     }
 
+    function drawAnnotationAt(layout, x, y) {
+      const h = layout.height;
+      const boxY = y + 10;
+
+      drawRoundedRect(x, boxY, layout.width, h, 14);
+      ctx.fillStyle = 'rgba(148, 163, 184, 0.22)';
+      ctx.fill();
+      ctx.lineWidth = 1.5;
+      ctx.strokeStyle = 'rgba(255,255,255,0.16)';
+      ctx.stroke();
+
+      ctx.font = `${layout.fontSize}px Arial`;
+      ctx.textBaseline = 'middle';
+      ctx.fillStyle = 'rgba(226,232,240,0.96)';
+      ctx.fillText(layout.text, x + ANNOTATION_PAD_X, y + STRIP_H / 2 + 1);
+    }
+
     function drawRows() {
       renderMap = [];
       const frameX = ROW_MARGIN;
@@ -415,6 +809,7 @@
         const innerX = frameX + ROW_FRAME;
         const innerY = frameY + ROW_FRAME;
         const innerW = frameW - ROW_FRAME * 2;
+        const contentW = innerW;
 
         ctx.save();
         drawRoundedRect(frameX, frameY, frameW, frameH, 16);
@@ -427,41 +822,123 @@
 
         ctx.save();
         ctx.beginPath();
-        drawRoundedRect(innerX, innerY, innerW, STRIP_H, 14);
+        drawRoundedRect(innerX, innerY, contentW, STRIP_H, 14);
         ctx.clip();
 
         let cursor = innerX - row.scrollX;
-        const items = row.type === 'chunk' ? [row.chunk] : row.items;
-        for (const chunk of items) {
+        const items = getRowItems(row);
+        for (let i = 0; i < items.length; i++) {
+          const chunk = items[i];
           drawChunkAt(chunk, cursor, innerY);
           renderMap.push({
             row,
+            rowId: row.id,
             chunk,
+            itemIndex: i,
             x: cursor,
             y: innerY,
             w: chunk.w,
             h: chunk.h,
-            viewport: { x: innerX, y: innerY, w: innerW, h: STRIP_H }
+            center: { x: cursor + chunk.w / 2, y: innerY + chunk.h / 2 },
+            viewport: { x: innerX, y: innerY, w: contentW, h: STRIP_H }
           });
-          cursor += chunk.w + SPLIT_GAP;
+          const note = getChunkNoteLayout(chunk);
+          if (note) {
+            const noteX = cursor + chunk.w + ANNOTATION_GAP;
+            chunk.noteRect = {
+              x: noteX,
+              y: innerY + 10,
+              w: note.width,
+              h: note.height,
+              fontSize: note.fontSize
+            };
+            cursor += chunk.w + ANNOTATION_GAP + note.width + NOTE_BUTTON_GAP + NOTE_BUTTON_W;
+          } else {
+            chunk.noteRect = null;
+            cursor += chunk.w;
+          }
+          if (i < items.length - 1) cursor += SPLIT_GAP;
         }
         ctx.restore();
       }
     }
 
+    function distance(a, b) {
+      return Math.hypot(a.x - b.x, a.y - b.y);
+    }
+
+    function getClosedPath(points) {
+      if (points.length < 2) return points;
+      return distance(points[0], points[points.length - 1]) <= LASSO_CLOSE_RADIUS
+        ? points
+        : [...points, points[0]];
+    }
+
+    function classifyGesture(points) {
+      if (points.length < 3) return 'slice';
+      const vectors = [];
+      let pathLength = 0;
+      let minX = Infinity;
+      let maxX = -Infinity;
+      let minY = Infinity;
+      let maxY = -Infinity;
+
+      for (let i = 1; i < points.length; i++) {
+        const dx = points[i].x - points[i - 1].x;
+        const dy = points[i].y - points[i - 1].y;
+        const len = Math.hypot(dx, dy);
+        pathLength += len;
+        minX = Math.min(minX, points[i].x, points[i - 1].x);
+        maxX = Math.max(maxX, points[i].x, points[i - 1].x);
+        minY = Math.min(minY, points[i].y, points[i - 1].y);
+        maxY = Math.max(maxY, points[i].y, points[i - 1].y);
+        if (len >= MIN_SEGMENT_LENGTH) vectors.push({ x: dx / len, y: dy / len });
+      }
+
+      let hasOppositeDirections = false;
+      for (let i = 0; i < vectors.length; i++) {
+        for (let j = i + 1; j < vectors.length; j++) {
+          const dot = vectors[i].x * vectors[j].x + vectors[i].y * vectors[j].y;
+          if (dot < -0.55) {
+            hasOppositeDirections = true;
+            break;
+          }
+        }
+        if (hasOppositeDirections) break;
+      }
+
+      const boxW = maxX - minX;
+      const boxH = maxY - minY;
+      const startEndDistance = distance(points[0], points[points.length - 1]);
+      const netDistance = Math.hypot(
+        points[points.length - 1].x - points[0].x,
+        points[points.length - 1].y - points[0].y
+      );
+      const straightness = pathLength > 0 ? netDistance / pathLength : 1;
+
+      if (hasOppositeDirections && boxW > 28 && boxH > 28 && pathLength > 90) return 'lasso';
+      if (startEndDistance < 24 && boxW > 24 && boxH > 24 && pathLength > 90) return 'lasso';
+      if (straightness < 0.45 && boxW > 24 && boxH > 24) return 'lasso';
+      return 'slice';
+    }
+
     function drawSwipeTrail() {
       if (swipePoints.length < 2) return;
+      const previewMode = currentMode === 'auto' ? classifyGesture(swipePoints) : currentMode;
+      const points = previewMode === 'lasso' ? getClosedPath(swipePoints) : swipePoints;
       ctx.save();
       ctx.lineCap = 'round';
       ctx.lineJoin = 'round';
-      ctx.strokeStyle = 'rgba(125, 211, 252, 0.95)';
+      ctx.strokeStyle = previewMode === 'lasso' ? 'rgba(196, 181, 253, 0.95)' : 'rgba(125, 211, 252, 0.95)';
       ctx.lineWidth = 6;
       ctx.beginPath();
-      ctx.moveTo(swipePoints[0].x, swipePoints[0].y);
-      for (let i = 1; i < swipePoints.length; i++) {
-        ctx.lineTo(swipePoints[i].x, swipePoints[i].y);
-      }
+      ctx.moveTo(points[0].x, points[0].y);
+      for (let i = 1; i < points.length; i++) ctx.lineTo(points[i].x, points[i].y);
       ctx.stroke();
+      if (previewMode === 'lasso') {
+        ctx.fillStyle = 'rgba(196, 181, 253, 0.12)';
+        ctx.fill();
+      }
       ctx.restore();
     }
 
@@ -536,10 +1013,24 @@
       return p.x >= r.x && p.x <= r.x + r.w && p.y >= r.y && p.y <= r.y + r.h;
     }
 
-    function analyzeSwipe() {
-      if (swipePoints.length < 2) return;
-      const a = swipePoints[0];
-      const b = swipePoints[swipePoints.length - 1];
+    function pointInPolygon(point, polygon) {
+      let inside = false;
+      for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+        const xi = polygon[i].x;
+        const yi = polygon[i].y;
+        const xj = polygon[j].x;
+        const yj = polygon[j].y;
+        const intersect = ((yi > point.y) !== (yj > point.y))
+          && (point.x < ((xj - xi) * (point.y - yi)) / ((yj - yi) || 1e-6) + xi);
+        if (intersect) inside = !inside;
+      }
+      return inside;
+    }
+
+    function analyzeSlice(points) {
+      if (points.length < 2) return;
+      const a = points[0];
+      const b = points[points.length - 1];
       let best = null;
       let wordHit = false;
 
@@ -594,29 +1085,55 @@
       }
     }
 
+    function analyzeLasso(points) {
+      if (points.length < 3) {
+        setStatus('Draw a larger lasso around two or more tokens to merge them.', 'bad');
+        return;
+      }
+
+      const polygon = getClosedPath(points);
+      const selected = renderMap.filter((entry) => pointInPolygon(entry.center, polygon));
+      if (selected.length < 2) {
+        setStatus('Lasso at least two split tokens to bring them back together.', 'bad');
+        return;
+      }
+
+      performMerge(selected);
+    }
+
+    function analyzeGesture() {
+      if (swipePoints.length < 2) return;
+      const mode = currentMode === 'auto' ? classifyGesture(swipePoints) : currentMode;
+      if (mode === 'lasso') analyzeLasso(swipePoints);
+      else analyzeSlice(swipePoints);
+    }
+
     function performCut(entry, splitIndex, flashX) {
       const chunk = entry.chunk;
       const row = entry.row;
       const rowIndex = rows.indexOf(row);
       if (rowIndex === -1) return;
-      const chunkStillPresent = row.type === 'chunk' ? row.chunk === chunk : row.items.includes(chunk);
+      const chunkStillPresent = getRowItems(row).includes(chunk);
       if (!chunkStillPresent) return;
       if (splitIndex <= 0 || splitIndex >= chunk.words.length) return;
 
       const leftChunk = createChunk(chunk.words.slice(0, splitIndex), chunk.start, chunk.start + splitIndex);
       const rightChunk = createChunk(chunk.words.slice(splitIndex), chunk.start + splitIndex, chunk.end);
+      leftChunk.hasNote = true;
+      leftChunk.noteText = '';
+      leftChunk.editDraft = '';
+      rightChunk.hasNote = true;
+      rightChunk.noteText = '';
+      rightChunk.editDraft = '';
 
       if (row.type === 'chunk') {
-        rows.splice(
-          rowIndex,
-          1,
-          { type: 'chunk', chunk: leftChunk, scrollX: 0 },
-          { type: 'chunk', chunk: rightChunk, scrollX: 0 }
-        );
+        rows.splice(rowIndex, 1, createRowFromChunks([leftChunk]), createRowFromChunks([rightChunk]));
       } else {
-        const idx = row.items.indexOf(chunk);
+        const items = getRowItems(row).slice();
+        const idx = items.indexOf(chunk);
         if (idx === -1) return;
-        row.items.splice(idx, 1, leftChunk, rightChunk);
+        items.splice(idx, 1, leftChunk, rightChunk);
+        setRowItems(row, items);
       }
 
       layoutRows();
@@ -629,6 +1146,68 @@
       };
       spawnParticles(flashX, entry.y + chunk.h / 2, 'rgba(134,239,172,0.95)');
       setStatus('Nice cut. The word strip split at a legal character boundary.', 'good');
+    }
+
+    function performMerge(selectedEntries) {
+      const uniqueChunks = [...new Map(selectedEntries.map((entry) => [entry.chunk.id, entry.chunk])).values()]
+        .sort((a, b) => a.start - b.start);
+      if (uniqueChunks.length < 2) {
+        setStatus('Lasso at least two separate tokens to merge them.', 'bad');
+        return;
+      }
+
+      for (let i = 1; i < uniqueChunks.length; i++) {
+        if (uniqueChunks[i].start !== uniqueChunks[i - 1].end) {
+          setStatus('The selected tokens need to be consecutive pieces to merge cleanly.', 'bad');
+          return;
+        }
+      }
+
+      const mergedWords = uniqueChunks.flatMap((item) => item.words);
+      const mergedChunk = createChunk(
+        mergedWords,
+        uniqueChunks[0].start,
+        uniqueChunks[uniqueChunks.length - 1].end
+      );
+      mergedChunk.hasNote = uniqueChunks.some((item) => item.hasNote);
+      mergedChunk.noteText = uniqueChunks
+        .map((item) => (item.noteText || '').trim())
+        .filter(Boolean)
+        .join(' | ');
+      mergedChunk.editDraft = mergedChunk.noteText;
+
+      const selectedIds = new Set(uniqueChunks.map((item) => item.id));
+      const mergedRow = createRowFromChunks([mergedChunk]);
+      const newRows = [];
+      let insertedMergedRow = false;
+
+      for (const row of rows) {
+        const items = getRowItems(row);
+        const hasSelected = items.some((item) => selectedIds.has(item.id));
+        if (hasSelected && !insertedMergedRow) {
+          newRows.push(mergedRow);
+          insertedMergedRow = true;
+        }
+
+        if (!hasSelected) {
+          newRows.push(row);
+          continue;
+        }
+
+        const remainingItems = items.filter((item) => !selectedIds.has(item.id));
+        if (remainingItems.length) {
+          setRowItems(row, remainingItems);
+          newRows.push(row);
+        }
+      }
+
+      rows = newRows;
+      layoutRows();
+
+      const centerX = selectedEntries.reduce((sum, entry) => sum + entry.center.x, 0) / selectedEntries.length;
+      const centerY = selectedEntries.reduce((sum, entry) => sum + entry.center.y, 0) / selectedEntries.length;
+      spawnParticles(centerX, centerY, 'rgba(196,181,253,0.95)');
+      setStatus('Lasso merge complete. The selected tokens are together again.', 'good');
     }
 
     function getPos(evt) {
@@ -678,7 +1257,7 @@
         return;
       }
 
-      dragMode = 'swipe';
+      dragMode = 'gesture';
       swipePoints = [pos];
     }
 
@@ -687,9 +1266,9 @@
       evt.preventDefault();
       const pos = getPos(evt);
 
-      if (dragMode === 'swipe') {
+      if (dragMode === 'gesture') {
         swipePoints.push(pos);
-        if (swipePoints.length > 24) swipePoints.shift();
+        if (swipePoints.length > GESTURE_POINT_LIMIT) swipePoints.shift();
       } else if (dragMode === 'pan' && activeRow) {
         activeRow.scrollX = panStartScroll - (pos.x - panAnchorX);
         ensureRowScrollBounds(activeRow);
@@ -701,9 +1280,9 @@
       evt.preventDefault();
       const pos = getPos(evt);
 
-      if (dragMode === 'swipe') {
+      if (dragMode === 'gesture') {
         swipePoints.push(pos);
-        analyzeSwipe();
+        analyzeGesture();
         setTimeout(() => { swipePoints = []; }, 70);
       } else if (dragMode === 'pan') {
         setStatus('Dragged row horizontally to inspect cropped content.');
@@ -713,6 +1292,130 @@
       activeRow = null;
     }
 
+    function iconSvg(name) {
+      if (name === 'edit') return '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>';
+      if (name === 'save') return '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h13l3 3v13H4z"/><path d="M8 4v6h8V4"/><path d="M8 20v-6h8v6"/></svg>';
+      return '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>';
+    }
+
+    function createRowControl(chunk) {
+      const control = document.createElement('div');
+      control.className = 'rowControl' + (chunk.isEditing ? ' is-editing' : '');
+      control.dataset.chunkId = String(chunk.id);
+
+      const inputWrap = document.createElement('div');
+      inputWrap.className = 'rowInputWrap';
+      const input = document.createElement('input');
+      input.className = 'rowEditInput';
+      input.type = 'text';
+      input.value = chunk.editDraft || chunk.noteText || '';
+      input.readOnly = !chunk.isEditing;
+      inputWrap.appendChild(input);
+
+      const editToggle = document.createElement('div');
+      editToggle.className = 'editToggle';
+      const editBtn = document.createElement('button');
+      editBtn.type = 'button';
+      editBtn.className = 'iconBtn';
+      editBtn.dataset.action = 'edit';
+      editBtn.setAttribute('aria-label', 'Edit row');
+      editBtn.innerHTML = iconSvg('edit');
+      editToggle.appendChild(editBtn);
+
+      const editActions = document.createElement('div');
+      editActions.className = 'editActions';
+      const saveBtn = document.createElement('button');
+      saveBtn.type = 'button';
+      saveBtn.className = 'iconBtn';
+      saveBtn.dataset.action = 'save';
+      saveBtn.setAttribute('aria-label', 'Save row');
+      saveBtn.innerHTML = iconSvg('save');
+      const cancelBtn = document.createElement('button');
+      cancelBtn.type = 'button';
+      cancelBtn.className = 'iconBtn';
+      cancelBtn.dataset.action = 'cancel';
+      cancelBtn.setAttribute('aria-label', 'Cancel editing');
+      cancelBtn.innerHTML = iconSvg('cancel');
+      editActions.append(saveBtn, cancelBtn);
+
+      control.append(inputWrap, editToggle, editActions);
+      return control;
+    }
+
+    function renderRowControls() {
+      rowControlsLayer.innerHTML = '';
+      for (const row of rows) {
+        for (const chunk of getRowItems(row)) {
+          if (chunk.hasNote) rowControlsLayer.appendChild(createRowControl(chunk));
+        }
+      }
+      positionRowControls();
+    }
+
+    function positionRowControls() {
+      const controls = rowControlsLayer.querySelectorAll('.rowControl');
+      for (const control of controls) {
+        const chunkId = Number(control.dataset.chunkId);
+        const entry = renderMap.find((item) => item.chunk.id === chunkId);
+        const chunk = entry?.chunk;
+        if (!chunk || !chunk.noteRect) continue;
+        const input = control.querySelector('.rowEditInput');
+        if (input) {
+          input.style.width = `${chunk.noteRect.w}px`;
+          input.style.height = `${chunk.noteRect.h}px`;
+          input.style.fontSize = `${chunk.noteRect.fontSize}px`;
+        }
+        control.style.left = `${chunk.noteRect.x}px`;
+        control.style.top = `${chunk.noteRect.y + chunk.noteRect.h / 2}px`;
+      }
+    }
+
+    function getChunkById(chunkId) {
+      for (const row of rows) {
+        for (const chunk of getRowItems(row)) {
+          if (chunk.id === chunkId) return chunk;
+        }
+      }
+      return null;
+    }
+
+    function getChunkControlElement(chunk) {
+      return rowControlsLayer.querySelector(`.rowControl[data-chunk-id="${chunk.id}"]`);
+    }
+
+    function toggleChunkEditing(chunk, editing) {
+      chunk.isEditing = editing;
+      const control = getChunkControlElement(chunk);
+      if (!control) {
+        renderRowControls();
+        return toggleChunkEditing(chunk, editing);
+      }
+
+      const input = control.querySelector('.rowEditInput');
+      if (editing) chunk.editDraft = chunk.noteText || '';
+      if (input) {
+        input.value = chunk.editDraft;
+        input.readOnly = !editing;
+      }
+      control.classList.toggle('is-editing', editing);
+      if (!editing) return;
+      if (input) {
+        input.focus();
+        input.select();
+      }
+    }
+
+    function saveChunkEdit(chunk) {
+      chunk.isEditing = false;
+      const control = getChunkControlElement(chunk);
+      if (control) control.classList.remove('is-editing');
+      const input = control?.querySelector('.rowEditInput');
+      if (input) input.readOnly = true;
+      chunk.noteText = chunk.editDraft.trim();
+      layoutRows();
+      setStatus(chunk.noteText ? 'Split note updated.' : 'Split note cleared.', 'good');
+    }
+
     function loadSentence() {
       currentWord = sentenceInput.value.replace(/\s+/g, '');
       sentenceInput.value = currentWord || 'vocabulary';
@@ -720,6 +1423,12 @@
       rows = buildInitialRows(currentWord);
       layoutRows();
       setStatus('Vocabulary word loaded.');
+    }
+
+    function syncModeButtons() {
+      modeBar.querySelectorAll('.modeBtn').forEach((btn) => {
+        btn.classList.toggle('active', btn.dataset.mode === currentMode);
+      });
     }
 
     function animate() {
@@ -733,6 +1442,7 @@
       ctx.restore();
 
       drawRows();
+      positionRowControls();
       drawSwipeTrail();
       updateParticles();
       drawParticles();
@@ -742,8 +1452,70 @@
 
     loadBtn.addEventListener('click', loadSentence);
     resetBtn.addEventListener('click', loadSentence);
+    saveToSetBtn.addEventListener('click', () => {
+      saveWordToStudySet(studySetSelect.value);
+    });
+    saveToNewSetBtn.addEventListener('click', openNewSetModal);
+    cancelNewSetBtn.addEventListener('click', closeNewSetModal);
+    confirmNewSetBtn.addEventListener('click', createNewStudySet);
     sentenceInput.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') loadSentence();
+    });
+    newSetNameInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') createNewStudySet();
+      if (e.key === 'Escape') closeNewSetModal();
+    });
+
+    modeBar.addEventListener('click', (e) => {
+      const btn = e.target.closest('.modeBtn');
+      if (!btn) return;
+      currentMode = btn.dataset.mode;
+      syncModeButtons();
+      setStatus(`${btn.textContent} mode selected.`);
+    });
+
+    rowControlsLayer.addEventListener('click', (e) => {
+      const button = e.target.closest('[data-action]');
+      if (!button) return;
+      const control = button.closest('.rowControl');
+      if (!control) return;
+      const chunk = getChunkById(Number(control.dataset.chunkId));
+      if (!chunk) return;
+      const action = button.dataset.action;
+      if (action === 'edit') toggleChunkEditing(chunk, true);
+      if (action === 'save') saveChunkEdit(chunk);
+      if (action === 'cancel') {
+        chunk.editDraft = chunk.noteText || '';
+        toggleChunkEditing(chunk, false);
+      }
+    });
+
+    rowControlsLayer.addEventListener('input', (e) => {
+      const input = e.target.closest('.rowEditInput');
+      if (!input) return;
+      const control = input.closest('.rowControl');
+      const chunk = getChunkById(Number(control.dataset.chunkId));
+      if (chunk) {
+        chunk.editDraft = input.value;
+        layoutRows(false);
+      }
+    });
+
+    rowControlsLayer.addEventListener('keydown', (e) => {
+      const input = e.target.closest('.rowEditInput');
+      if (!input) return;
+      const control = input.closest('.rowControl');
+      const chunk = getChunkById(Number(control.dataset.chunkId));
+      if (!chunk) return;
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        saveChunkEdit(chunk);
+      }
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        chunk.editDraft = chunk.noteText || '';
+        toggleChunkEditing(chunk, false);
+      }
     });
 
     canvas.addEventListener('mousedown', startPointer);
@@ -757,8 +1529,13 @@
       resizeCanvas();
       layoutRows();
     });
+    newSetModal.addEventListener('click', (e) => {
+      if (e.target === newSetModal) closeNewSetModal();
+    });
 
     resizeCanvas();
+    renderStudySetOptions();
+    syncModeButtons();
     loadSentence();
     animate();
   </script>
