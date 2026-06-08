@@ -214,6 +214,134 @@
       white-space: nowrap;
     }
 
+    .managementToolbar,
+    .managementBrowser,
+    .managementSection,
+    .managementSectionGrid,
+    .studySetCard,
+    .studySetSummary,
+    .studySetDetails,
+    .studySetActions,
+    .studySetRename,
+    .studySetVocList,
+    .managedVoc,
+    .managedVocDetails,
+    .filterGrid {
+      display: grid;
+      gap: 10px;
+      min-width: 0;
+    }
+
+    .managementToolbar {
+      grid-template-columns: minmax(180px, 1fr) auto minmax(180px, 220px) auto auto;
+      align-items: center;
+    }
+
+    .managementSectionHeader {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 10px;
+      min-width: 0;
+    }
+
+    .managementSectionGrid {
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    }
+
+    .studySetCard {
+      gap: 0;
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 12px;
+      background: rgba(255,255,255,0.06);
+      overflow: hidden;
+    }
+
+    .studySetSummary {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 12px;
+      align-items: center;
+      padding: 12px;
+      cursor: pointer;
+      text-align: left;
+      color: var(--text);
+      background: transparent;
+      border: 0;
+      border-radius: 0;
+    }
+
+    .studySetSummary:hover {
+      background: rgba(255,255,255,0.07);
+      transform: none;
+    }
+
+    .studySetTitle,
+    .managedVocTitle {
+      display: grid;
+      gap: 4px;
+      min-width: 0;
+    }
+
+    .studySetTitle strong,
+    .studySetTitle span,
+    .managedVocTitle strong,
+    .managedVocTitle span {
+      overflow-wrap: anywhere;
+    }
+
+    .studySetDetails {
+      border-top: 1px solid rgba(255,255,255,0.12);
+      padding: 12px;
+    }
+
+    .studySetActions,
+    .studySetRename {
+      grid-template-columns: repeat(4, auto);
+      justify-content: start;
+      align-items: center;
+    }
+
+    .studySetRename {
+      grid-template-columns: minmax(180px, 1fr) auto;
+    }
+
+    .managedVoc {
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 10px;
+      background: rgba(15,23,42,0.3);
+      overflow: hidden;
+    }
+
+    .managedVocSummary {
+      width: 100%;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 10px;
+      align-items: center;
+      padding: 10px 12px;
+      color: var(--text);
+      background: transparent;
+      border: 0;
+      border-radius: 0;
+      text-align: left;
+    }
+
+    .managedVocDetails {
+      grid-template-columns: auto auto;
+      justify-content: start;
+      padding: 0 12px 12px;
+    }
+
+    .filterGrid {
+      grid-template-columns: 1fr 1fr;
+    }
+
+    input[type="file"] {
+      width: 100%;
+      color: var(--muted);
+    }
+
     .reviewFilters,
     .testBar,
     .spellingBar {
@@ -365,6 +493,7 @@
       font-size: 24px;
       outline: none;
       box-sizing: border-box;
+      transform-origin: left center;
     }
 
     .iconBtn {
@@ -463,6 +592,12 @@
       .studyBar { grid-template-columns: 1fr; }
       .info { grid-template-columns: 1fr; }
       .reviewFilters { grid-template-columns: 1fr; }
+      .managementToolbar,
+      .managementSectionGrid,
+      .studySetActions,
+      .studySetRename,
+      .managedVocDetails,
+      .filterGrid { grid-template-columns: 1fr; }
       .testBar,
       .spellingBar { grid-template-columns: 1fr; }
       .pageTab {
@@ -481,6 +616,7 @@
       <button type="button" class="pageTab" data-page-mode="review">Voc Review</button>
       <button type="button" class="pageTab" data-page-mode="test">Voc Test</button>
       <button type="button" class="pageTab" data-page-mode="spelling">Voc Spelling</button>
+      <button type="button" class="pageTab" data-page-mode="manage">Study Sets</button>
     </section>
 
     <div id="modeHost" class="modeHost">
@@ -496,13 +632,7 @@
         </div>
         <div class="controls">
           <input id="sentenceInput" type="text" value="vocabulary" />
-          <button id="loadBtn">Load Word</button>
-          <button id="resetBtn" class="secondary">Reset Cuts</button>
-        </div>
-        <div class="studyBar">
-          <select id="studySetSelect"></select>
-          <button id="saveToSetBtn" type="button">Save Word To Study Set</button>
-          <button id="saveToNewSetBtn" type="button" class="secondary">Save To New Study Set</button>
+          <button id="loadBtn">Load / Reset Cuts</button>
         </div>
       </section>
 
@@ -546,6 +676,31 @@
         </div>
       </section>
 
+      <section id="managementPanel" class="panel topbar hidden">
+        <div class="reviewHeader">
+          <div>
+            <h1 class="title">Study Set Management</h1>
+            <p class="sub">Rename, duplicate, delete, import, export, and manage saved vocabulary records.</p>
+          </div>
+        </div>
+        <div class="managementToolbar">
+          <input id="managementSearchInput" type="text" placeholder="Search study sets or vocabulary" />
+          <button id="openFilterBtn" type="button" class="secondary">Filter</button>
+          <select id="managementSortSelect">
+            <option value="updated-desc">Recently Edited</option>
+            <option value="name-asc">Name A-Z</option>
+            <option value="name-desc">Name Z-A</option>
+            <option value="created-desc">Newest Created</option>
+            <option value="created-asc">Oldest Created</option>
+            <option value="items-desc">Most Vocabulary</option>
+            <option value="items-asc">Fewest Vocabulary</option>
+          </select>
+          <button id="importSetBtn" type="button" class="secondary">Import CSV</button>
+          <input id="importSetInput" class="hidden" type="file" accept=".csv,text/csv" />
+        </div>
+        <div id="managementBrowser" class="managementBrowser"></div>
+      </section>
+
       <section id="testTopbar" class="panel topbar hidden">
         <div class="testHeader">
           <div>
@@ -566,6 +721,14 @@
         <div id="rowControlsLayer" class="rowControlsLayer"></div>
       </section>
 
+      <section id="sliceSavePanel" class="panel topbar">
+        <div class="studyBar">
+          <select id="studySetSelect"></select>
+          <button id="saveToSetBtn" type="button">Save Word To Study Set</button>
+          <button id="saveToNewSetBtn" type="button" class="secondary">Save To New Study Set</button>
+        </div>
+      </section>
+
       <section id="stageInfoPanel" class="info">
         <div class="panel legend">
           <h2>How it works</h2>
@@ -575,7 +738,7 @@
             <li>Lasso closes itself with a straight line if the path does not fully reconnect.</li>
             <li>Hyphens stay in the sequence and can be sliced on either side.</li>
             <li>Slicing through the body of a character tile is rejected.</li>
-            <li>Drag horizontally on a row frame to inspect long content.</li>
+            <li>Long chunks and notes resize to stay inside the slicing container.</li>
             <li>This template only keeps the slicing window and related logic.</li>
           </ul>
           <div id="status" class="status">Ready.</div>
@@ -602,19 +765,53 @@
     </div>
   </div>
 
+  <div id="savedSetModal" class="modalBackdrop" aria-hidden="true">
+    <div class="modalCard">
+      <div>
+        <h2>Vocabulary Saved</h2>
+        <p id="savedSetMessage" class="sub">The current vocabulary was saved to your study set.</p>
+      </div>
+      <div class="modalActions">
+        <button id="addAnotherVocBtn" type="button" class="secondary">Add Another Voc</button>
+        <button id="proceedReviewBtn" type="button">Proceed To Voc Review</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="managementFilterModal" class="modalBackdrop" aria-hidden="true">
+    <div class="modalCard">
+      <div>
+        <h2>Filter Study Sets</h2>
+        <p class="sub">Limit the study sets shown in management.</p>
+      </div>
+      <div class="filterGrid">
+        <input id="filterDateFromInput" type="date" />
+        <input id="filterDateToInput" type="date" />
+        <input id="filterMinItemsInput" type="text" inputmode="numeric" placeholder="Minimum vocabulary" />
+        <input id="filterMaxItemsInput" type="text" inputmode="numeric" placeholder="Maximum vocabulary" />
+      </div>
+      <div class="modalActions">
+        <button id="clearFilterBtn" type="button" class="secondary">Clear</button>
+        <button id="cancelFilterBtn" type="button" class="secondary">Cancel</button>
+        <button id="applyFilterBtn" type="button">Apply</button>
+      </div>
+    </div>
+  </div>
+
   <script>
     const pageTabs = document.querySelectorAll('.pageTab');
     const sliceTopbar = document.getElementById('sliceTopbar');
     const testTopbar = document.getElementById('testTopbar');
     const stagePanel = document.getElementById('stagePanel');
+    const sliceSavePanel = document.getElementById('sliceSavePanel');
     const stageInfoPanel = document.getElementById('stageInfoPanel');
     const reviewPanel = document.getElementById('reviewPanel');
     const spellingPanel = document.getElementById('spellingPanel');
+    const managementPanel = document.getElementById('managementPanel');
     const canvas = document.getElementById('stage');
     const ctx = canvas.getContext('2d');
     const sentenceInput = document.getElementById('sentenceInput');
     const loadBtn = document.getElementById('loadBtn');
-    const resetBtn = document.getElementById('resetBtn');
     const studySetSelect = document.getElementById('studySetSelect');
     const saveToSetBtn = document.getElementById('saveToSetBtn');
     const saveToNewSetBtn = document.getElementById('saveToNewSetBtn');
@@ -622,6 +819,10 @@
     const newSetNameInput = document.getElementById('newSetNameInput');
     const cancelNewSetBtn = document.getElementById('cancelNewSetBtn');
     const confirmNewSetBtn = document.getElementById('confirmNewSetBtn');
+    const savedSetModal = document.getElementById('savedSetModal');
+    const savedSetMessage = document.getElementById('savedSetMessage');
+    const addAnotherVocBtn = document.getElementById('addAnotherVocBtn');
+    const proceedReviewBtn = document.getElementById('proceedReviewBtn');
     const reviewSearchInput = document.getElementById('reviewSearchInput');
     const reviewDateFromInput = document.getElementById('reviewDateFromInput');
     const reviewDateToInput = document.getElementById('reviewDateToInput');
@@ -640,6 +841,20 @@
     const spellingCounter = document.getElementById('spellingCounter');
     const spellingNotes = document.getElementById('spellingNotes');
     const spellingAnswerInput = document.getElementById('spellingAnswerInput');
+    const managementSearchInput = document.getElementById('managementSearchInput');
+    const openFilterBtn = document.getElementById('openFilterBtn');
+    const managementSortSelect = document.getElementById('managementSortSelect');
+    const importSetBtn = document.getElementById('importSetBtn');
+    const importSetInput = document.getElementById('importSetInput');
+    const managementBrowser = document.getElementById('managementBrowser');
+    const managementFilterModal = document.getElementById('managementFilterModal');
+    const filterDateFromInput = document.getElementById('filterDateFromInput');
+    const filterDateToInput = document.getElementById('filterDateToInput');
+    const filterMinItemsInput = document.getElementById('filterMinItemsInput');
+    const filterMaxItemsInput = document.getElementById('filterMaxItemsInput');
+    const clearFilterBtn = document.getElementById('clearFilterBtn');
+    const cancelFilterBtn = document.getElementById('cancelFilterBtn');
+    const applyFilterBtn = document.getElementById('applyFilterBtn');
     const chunkList = document.getElementById('chunkList');
     const statusEl = document.getElementById('status');
     const modeBar = document.getElementById('modeBar');
@@ -677,9 +892,6 @@
     let statusTimer = null;
     let renderMap = [];
     let dragMode = null;
-    let activeRow = null;
-    let panAnchorX = 0;
-    let panStartScroll = 0;
     let nextChunkId = 1;
     let nextRowId = 1;
     let currentWord = '';
@@ -690,6 +902,15 @@
     let spellingItemIndex = 0;
     let testPassedCurrent = false;
     let spellingPassedCurrent = false;
+    let lastSavedSetId = '';
+    let expandedStudySetId = '';
+    let expandedVocabularyId = '';
+    let managementFilters = {
+      dateFrom: '',
+      dateTo: '',
+      minItems: '',
+      maxItems: ''
+    };
 
     function tokenize(word) {
       return word.replace(/\s+/g, '').split('').filter(Boolean);
@@ -714,11 +935,11 @@
     function createRowFromChunks(items) {
       const row = {
         id: nextRowId++,
-        scrollX: 0,
         y: null,
         targetY: 0,
         rowH: STRIP_H + ROW_FRAME * 2,
-        contentW: 0
+        contentW: 0,
+        scale: 1
       };
       setRowItems(row, items);
       return row;
@@ -732,34 +953,20 @@
       if (!chunk.hasNote) return null;
       const sourceText = chunk.isEditing ? chunk.editDraft : chunk.noteText;
       const text = (sourceText || '').trim();
-      const totalWidthLimit = rowViewportW * 0.9;
-      const noteWidthLimit = Math.max(
-        ANNOTATION_MIN_W,
-        Math.min(
-          ANNOTATION_MAX_W,
-          totalWidthLimit - chunk.w - ANNOTATION_GAP - NOTE_BUTTON_GAP - NOTE_BUTTON_W
-        )
-      );
 
       if (!text) {
         return {
           text: '',
           fontSize: ANNOTATION_MAX_FONT,
-          width: Math.min(ANNOTATION_MIN_W, noteWidthLimit),
+          width: ANNOTATION_MIN_W,
           height: STRIP_H - 20
         };
       }
 
-      let fontSize = ANNOTATION_MAX_FONT;
-      let textWidth = 0;
-
-      for (; fontSize >= ANNOTATION_MIN_FONT; fontSize--) {
-        ctx.font = `${fontSize}px Arial`;
-        textWidth = ctx.measureText(text).width;
-        if (textWidth + ANNOTATION_PAD_X * 2 <= noteWidthLimit) break;
-      }
-
-      const width = Math.max(ANNOTATION_MIN_W, Math.min(noteWidthLimit, textWidth + ANNOTATION_PAD_X * 2));
+      const fontSize = ANNOTATION_MAX_FONT;
+      ctx.font = `${fontSize}px Arial`;
+      const textWidth = ctx.measureText(text).width;
+      const width = Math.max(ANNOTATION_MIN_W, textWidth + ANNOTATION_PAD_X * 2);
       return { text, fontSize, width, height: STRIP_H - 20 };
     }
 
@@ -837,6 +1044,10 @@
             id: set.id || `set-${setIndex}`,
             name: set.name || `Study Set ${setIndex + 1}`,
             createdAt,
+            updatedAt: set.updatedAt || items.reduce((latest, item) => {
+              const time = new Date(item.createdAt || createdAt).getTime();
+              return Number.isNaN(time) ? latest : Math.max(latest, time);
+            }, new Date(createdAt).getTime() || Date.now()),
             items
           };
         });
@@ -885,9 +1096,243 @@
       if (targetId && [...reviewSetSelect.options].some((option) => option.value === targetId)) {
         reviewSetSelect.value = targetId;
       }
-      renderReviewItem();
-      loadTestItem();
-      renderSpellingItem();
+      if (currentPageMode === 'review') renderReviewItem();
+      if (currentPageMode === 'test') loadTestItem();
+      if (currentPageMode === 'spelling') renderSpellingItem();
+      if (currentPageMode === 'manage') renderManagementPanel();
+    }
+
+    function makeUniqueSetName(baseName, studySets) {
+      const names = new Set(studySets.map((set) => set.name.toLowerCase()));
+      if (!names.has(baseName.toLowerCase())) return baseName;
+      let suffix = 2;
+      while (names.has(`${baseName} ${suffix}`.toLowerCase())) suffix++;
+      return `${baseName} ${suffix}`;
+    }
+
+    function getSetUpdatedTime(set) {
+      const updated = new Date(set.updatedAt || '').getTime();
+      if (!Number.isNaN(updated)) return updated;
+      const itemTimes = set.items.map((item) => new Date(item.createdAt || '').getTime()).filter((time) => !Number.isNaN(time));
+      return itemTimes.length ? Math.max(...itemTimes) : (new Date(set.createdAt || '').getTime() || 0);
+    }
+
+    function getSetSearchText(set) {
+      return [
+        set.name,
+        ...set.items.flatMap((item) => [
+          item.word,
+          ...item.segments.flatMap((segment) => [segment.text, segment.note || ''])
+        ])
+      ].join(' ').toLowerCase();
+    }
+
+    function getManagedStudySets() {
+      const query = managementSearchInput.value.trim().toLowerCase();
+      const minItems = Number.parseInt(managementFilters.minItems, 10);
+      const maxItems = Number.parseInt(managementFilters.maxItems, 10);
+      const dateFrom = managementFilters.dateFrom;
+      const dateTo = managementFilters.dateTo;
+      const filtered = loadStudySets().filter((set) => {
+        const searchOk = !query || getSetSearchText(set).includes(query);
+        const updatedLabel = formatDateLabel(set.updatedAt || set.createdAt);
+        const fromOk = !dateFrom || updatedLabel >= dateFrom;
+        const toOk = !dateTo || updatedLabel <= dateTo;
+        const minOk = Number.isNaN(minItems) || set.items.length >= minItems;
+        const maxOk = Number.isNaN(maxItems) || set.items.length <= maxItems;
+        return searchOk && fromOk && toOk && minOk && maxOk;
+      });
+
+      const sorted = filtered.slice();
+      const sortMode = managementSortSelect.value;
+      sorted.sort((a, b) => {
+        if (sortMode === 'name-asc') return a.name.localeCompare(b.name);
+        if (sortMode === 'name-desc') return b.name.localeCompare(a.name);
+        if (sortMode === 'created-asc') return new Date(a.createdAt) - new Date(b.createdAt);
+        if (sortMode === 'created-desc') return new Date(b.createdAt) - new Date(a.createdAt);
+        if (sortMode === 'items-asc') return a.items.length - b.items.length || a.name.localeCompare(b.name);
+        if (sortMode === 'items-desc') return b.items.length - a.items.length || a.name.localeCompare(b.name);
+        return getSetUpdatedTime(b) - getSetUpdatedTime(a);
+      });
+      return sorted;
+    }
+
+    function rowsFromVocabularyRecord(item) {
+      const segments = Array.isArray(item.segments) && item.segments.length
+        ? item.segments
+        : [{ text: item.word || '', note: '' }];
+      let cursor = 0;
+      const chunks = segments.map((segment) => {
+        const words = tokenize(segment.text || '');
+        const chunk = createChunk(words, cursor, cursor + words.length);
+        cursor += words.length;
+        chunk.hasNote = true;
+        chunk.noteText = segment.note || '';
+        chunk.editDraft = chunk.noteText;
+        return chunk;
+      }).filter((chunk) => chunk.words.length);
+      return chunks.length ? chunks.map((chunk) => createRowFromChunks([chunk])) : buildInitialRows(item.word || 'vocabulary');
+    }
+
+    function loadRecordIntoSlicing(item) {
+      sentenceInput.value = item.word || 'vocabulary';
+      currentWord = sentenceInput.value;
+      rows = rowsFromVocabularyRecord(item);
+      clearChunkFeedback();
+      currentPageMode = 'slice';
+      updatePageMode();
+      layoutRows();
+      setStatus(`Loaded "${currentWord}" for editing. Save it back to a study set when finished.`, 'good');
+    }
+
+    function renderManagementPanel() {
+      const sets = getManagedStudySets();
+      managementBrowser.innerHTML = '';
+      if (!sets.length) {
+        const empty = document.createElement('p');
+        empty.className = 'sub';
+        empty.textContent = 'No study sets match the current search and filters.';
+        managementBrowser.appendChild(empty);
+        return;
+      }
+
+      const recentCutoff = Date.now() - 1000 * 60 * 60 * 24 * 14;
+      const recentSets = sets.filter((set) => getSetUpdatedTime(set) >= recentCutoff).slice(0, 6);
+      renderManagementSection('Recently Edited', recentSets, 'No recently edited study sets match the current view.');
+      renderManagementSection('All', sets, 'No study sets match the current view.');
+    }
+
+    function renderManagementSection(title, sets, emptyText) {
+      const section = document.createElement('section');
+      section.className = 'managementSection';
+      const header = document.createElement('div');
+      header.className = 'managementSectionHeader';
+      const heading = document.createElement('h2');
+      heading.textContent = title;
+      const count = document.createElement('p');
+      count.className = 'sub';
+      count.textContent = `${sets.length} sets`;
+      header.append(heading, count);
+      section.appendChild(header);
+
+      if (!sets.length) {
+        const empty = document.createElement('p');
+        empty.className = 'sub';
+        empty.textContent = emptyText;
+        section.appendChild(empty);
+        managementBrowser.appendChild(section);
+        return;
+      }
+
+      const grid = document.createElement('div');
+      grid.className = 'managementSectionGrid';
+      sets.forEach((set) => grid.appendChild(createStudySetCard(set)));
+      section.appendChild(grid);
+      managementBrowser.appendChild(section);
+    }
+
+    function createStudySetCard(set) {
+      const card = document.createElement('article');
+      card.className = 'studySetCard';
+      card.dataset.setId = set.id;
+
+      const summary = document.createElement('button');
+      summary.type = 'button';
+      summary.className = 'studySetSummary';
+      summary.dataset.action = 'toggle-set';
+      const title = document.createElement('div');
+      title.className = 'studySetTitle';
+      const name = document.createElement('strong');
+      name.textContent = set.name;
+      const meta = document.createElement('span');
+      meta.className = 'sub';
+      meta.textContent = `${set.items.length} vocabulary. Edited ${formatDateLabel(set.updatedAt || set.createdAt)}.`;
+      title.append(name, meta);
+      const caret = document.createElement('span');
+      caret.textContent = expandedStudySetId === set.id ? 'Collapse' : 'Open';
+      summary.append(title, caret);
+      card.appendChild(summary);
+
+      if (expandedStudySetId !== set.id) return card;
+
+      const details = document.createElement('div');
+      details.className = 'studySetDetails';
+
+      const actions = document.createElement('div');
+      actions.className = 'studySetActions';
+      actions.append(
+        createActionButton('Duplicate', 'duplicate-set', 'secondary'),
+        createActionButton('Delete', 'delete-set', 'secondary'),
+        createActionButton('Export CSV', 'export-set', ''),
+        createActionButton('Collapse', 'toggle-set', 'secondary')
+      );
+
+      const rename = document.createElement('div');
+      rename.className = 'studySetRename';
+      const renameInput = document.createElement('input');
+      renameInput.type = 'text';
+      renameInput.value = set.name;
+      renameInput.placeholder = 'Study set name';
+      renameInput.dataset.role = 'rename-input';
+      const renameBtn = createActionButton('Rename', 'rename-set', '');
+      rename.append(renameInput, renameBtn);
+
+      const vocList = document.createElement('div');
+      vocList.className = 'studySetVocList';
+      if (!set.items.length) {
+        const empty = document.createElement('p');
+        empty.className = 'sub';
+        empty.textContent = 'No vocabulary saved in this study set.';
+        vocList.appendChild(empty);
+      } else {
+        set.items.forEach((item) => vocList.appendChild(createManagedVocabularyRow(item)));
+      }
+
+      details.append(actions, rename, vocList);
+      card.appendChild(details);
+      return card;
+    }
+
+    function createManagedVocabularyRow(item) {
+      const row = document.createElement('div');
+      row.className = 'managedVoc';
+      row.dataset.itemId = item.id;
+      const summary = document.createElement('button');
+      summary.type = 'button';
+      summary.className = 'managedVocSummary';
+      summary.dataset.action = 'toggle-voc';
+      const title = document.createElement('div');
+      title.className = 'managedVocTitle';
+      const word = document.createElement('strong');
+      word.textContent = item.word || '(untitled)';
+      const meta = document.createElement('span');
+      meta.className = 'sub';
+      meta.textContent = `${item.segments.length} segments. Created ${formatDateLabel(item.createdAt)}.`;
+      title.append(word, meta);
+      const state = document.createElement('span');
+      state.textContent = expandedVocabularyId === item.id ? 'Hide' : 'Show';
+      summary.append(title, state);
+      row.appendChild(summary);
+
+      if (expandedVocabularyId === item.id) {
+        const actions = document.createElement('div');
+        actions.className = 'managedVocDetails';
+        actions.append(
+          createActionButton('Edit In Slicing', 'edit-item', ''),
+          createActionButton('Remove', 'remove-item', 'secondary')
+        );
+        row.appendChild(actions);
+      }
+      return row;
+    }
+
+    function createActionButton(label, action, className) {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.textContent = label;
+      button.dataset.action = action;
+      if (className) button.className = className;
+      return button;
     }
 
     function serializeCurrentVocabularyRecord() {
@@ -930,10 +1375,43 @@
       const existingIndex = targetSet.items.findIndex((item) => item.word === record.word);
       if (existingIndex >= 0) targetSet.items.splice(existingIndex, 1, record);
       else targetSet.items.push(record);
+      targetSet.updatedAt = new Date().toISOString();
       persistStudySets(studySets);
       renderStudySetOptions(targetSet.id);
       setStatus(`Saved "${record.word}" to ${targetSet.name}.`, 'good');
-      return true;
+      return { record, set: targetSet };
+    }
+
+    function openSavedSetModal(record, set) {
+      lastSavedSetId = set.id;
+      savedSetMessage.textContent = `"${record.word}" was saved to ${set.name}.`;
+      savedSetModal.classList.add('open');
+      savedSetModal.setAttribute('aria-hidden', 'false');
+      addAnotherVocBtn.focus();
+    }
+
+    function closeSavedSetModal() {
+      savedSetModal.classList.remove('open');
+      savedSetModal.setAttribute('aria-hidden', 'true');
+    }
+
+    function handleAddAnotherVocabulary() {
+      closeSavedSetModal();
+      loadSentence();
+      sentenceInput.focus();
+      sentenceInput.select();
+    }
+
+    function handleProceedToReview() {
+      closeSavedSetModal();
+      currentPageMode = 'review';
+      reviewSearchInput.value = '';
+      reviewDateFromInput.value = '';
+      reviewDateToInput.value = '';
+      renderStudySetOptions(lastSavedSetId);
+      reviewSetSelect.value = lastSavedSetId;
+      reviewItemIndex = 0;
+      updatePageMode();
     }
 
     function openNewSetModal() {
@@ -967,13 +1445,264 @@
         id: `set-${Date.now()}`,
         name,
         createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
         items: []
       };
       studySets.push(newSet);
       persistStudySets(studySets);
       renderStudySetOptions(newSet.id);
       closeNewSetModal();
-      saveWordToStudySet(newSet.id);
+      const saved = saveWordToStudySet(newSet.id);
+      if (saved) openSavedSetModal(saved.record, saved.set);
+    }
+
+    function renameStudySet(setId, name) {
+      if (!setId || !name) {
+        setStatus('Choose a study set and enter a name.', 'bad');
+        return;
+      }
+
+      const studySets = loadStudySets();
+      if (studySets.some((set) => set.id !== setId && set.name.toLowerCase() === name.toLowerCase())) {
+        setStatus('That study set name already exists.', 'bad');
+        return;
+      }
+
+      const set = studySets.find((item) => item.id === setId);
+      if (!set) return;
+      set.name = name;
+      set.updatedAt = new Date().toISOString();
+      persistStudySets(studySets);
+      renderStudySetOptions(set.id);
+      setStatus('Study set renamed.', 'good');
+    }
+
+    function duplicateStudySet(setId) {
+      const source = getStudySetById(setId);
+      if (!source) return;
+      const studySets = loadStudySets();
+      const now = Date.now();
+      const copy = {
+        id: `set-${now}`,
+        name: makeUniqueSetName(`${source.name} Copy`, studySets),
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        items: source.items.map((item, index) => ({
+          ...item,
+          id: `item-${now}-${index}`,
+          segments: item.segments.map((segment) => ({ ...segment }))
+        }))
+      };
+      studySets.push(copy);
+      expandedStudySetId = copy.id;
+      expandedVocabularyId = '';
+      persistStudySets(studySets);
+      renderStudySetOptions(copy.id);
+      setStatus('Study set duplicated.', 'good');
+    }
+
+    function deleteStudySet(setId) {
+      const set = getStudySetById(setId);
+      if (!set) return;
+      if (!window.confirm(`Delete "${set.name}" and all saved vocabulary in it?`)) return;
+      const studySets = loadStudySets().filter((item) => item.id !== set.id);
+      if (expandedStudySetId === set.id) expandedStudySetId = '';
+      expandedVocabularyId = '';
+      persistStudySets(studySets);
+      renderStudySetOptions(studySets[0]?.id || '');
+      setStatus('Study set deleted.', 'good');
+    }
+
+    function removeManagedItem(setId, itemId) {
+      const studySets = loadStudySets();
+      const set = studySets.find((item) => item.id === setId);
+      if (!set) return;
+      set.items = set.items.filter((item) => item.id !== itemId);
+      set.updatedAt = new Date().toISOString();
+      if (expandedVocabularyId === itemId) expandedVocabularyId = '';
+      persistStudySets(studySets);
+      renderStudySetOptions(set.id);
+      setStatus('Vocabulary removed from study set.', 'good');
+    }
+
+    function csvEscape(value) {
+      const text = String(value ?? '');
+      return /[",\r\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+    }
+
+    function studySetToCsv(set) {
+      const rowsForCsv = [['set_name', 'set_created_at', 'item_word', 'item_created_at', 'segment_index', 'segment_text', 'segment_note']];
+      for (const item of set.items) {
+        item.segments.forEach((segment, index) => {
+          rowsForCsv.push([
+            set.name,
+            set.createdAt,
+            item.word,
+            item.createdAt,
+            index,
+            segment.text,
+            segment.note || ''
+          ]);
+        });
+      }
+      return rowsForCsv.map((row) => row.map(csvEscape).join(',')).join('\r\n');
+    }
+
+    function parseCsv(text) {
+      const rowsForCsv = [];
+      let row = [];
+      let field = '';
+      let quoted = false;
+
+      for (let i = 0; i < text.length; i++) {
+        const char = text[i];
+        const next = text[i + 1];
+        if (quoted) {
+          if (char === '"' && next === '"') {
+            field += '"';
+            i++;
+          } else if (char === '"') {
+            quoted = false;
+          } else {
+            field += char;
+          }
+          continue;
+        }
+
+        if (char === '"') quoted = true;
+        else if (char === ',') {
+          row.push(field);
+          field = '';
+        } else if (char === '\n') {
+          row.push(field);
+          rowsForCsv.push(row);
+          row = [];
+          field = '';
+        } else if (char !== '\r') {
+          field += char;
+        }
+      }
+
+      if (field || row.length) {
+        row.push(field);
+        rowsForCsv.push(row);
+      }
+      return rowsForCsv;
+    }
+
+    function exportStudySet(setId) {
+      const set = getStudySetById(setId);
+      if (!set) return;
+      const blob = new Blob([studySetToCsv(set)], { type: 'text/csv;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${set.name.replace(/[^\w-]+/g, '_') || 'study-set'}.csv`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+      setStatus('Study set exported as CSV.', 'good');
+    }
+
+    function importStudySetFromCsv(text) {
+      const rowsForCsv = parseCsv(text).filter((row) => row.some((field) => field.trim()));
+      if (rowsForCsv.length < 2) {
+        setStatus('CSV file has no study set records.', 'bad');
+        return;
+      }
+
+      const headers = rowsForCsv[0].map((header) => header.trim());
+      const indexOf = (name) => headers.indexOf(name);
+      const setNameIndex = indexOf('set_name');
+      const setCreatedIndex = indexOf('set_created_at');
+      const wordIndex = indexOf('item_word');
+      const itemCreatedIndex = indexOf('item_created_at');
+      const segmentIndex = indexOf('segment_index');
+      const segmentTextIndex = indexOf('segment_text');
+      const segmentNoteIndex = indexOf('segment_note');
+      if ([setNameIndex, wordIndex, segmentTextIndex].some((index) => index < 0)) {
+        setStatus('CSV must include set_name, item_word, and segment_text columns.', 'bad');
+        return;
+      }
+
+      const studySets = loadStudySets();
+      const firstRecord = rowsForCsv[1];
+      const setName = makeUniqueSetName((firstRecord[setNameIndex] || 'Imported Study Set').trim(), studySets);
+      const importedSet = {
+        id: `set-${Date.now()}`,
+        name: setName,
+        createdAt: firstRecord[setCreatedIndex] || new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        items: []
+      };
+      const itemMap = new Map();
+
+      for (const record of rowsForCsv.slice(1)) {
+        const word = (record[wordIndex] || '').trim();
+        const segmentText = record[segmentTextIndex] || '';
+        if (!word && !segmentText) continue;
+        const key = `${word}\u0000${record[itemCreatedIndex] || ''}`;
+        if (!itemMap.has(key)) {
+          const item = {
+            id: `item-${Date.now()}-${itemMap.size}`,
+            word: word || segmentText,
+            createdAt: record[itemCreatedIndex] || new Date().toISOString(),
+            segments: []
+          };
+          itemMap.set(key, item);
+          importedSet.items.push(item);
+        }
+        itemMap.get(key).segments.push({
+          order: Number(record[segmentIndex] || 0),
+          text: segmentText,
+          note: record[segmentNoteIndex] || ''
+        });
+      }
+
+      importedSet.items.forEach((item) => {
+        item.segments.sort((a, b) => a.order - b.order);
+        item.segments = item.segments.map(({ text, note }) => ({ text, note }));
+      });
+      studySets.push(importedSet);
+      persistStudySets(studySets);
+      renderStudySetOptions(importedSet.id);
+      setStatus('CSV study set imported.', 'good');
+    }
+
+    function openManagementFilterModal() {
+      filterDateFromInput.value = managementFilters.dateFrom;
+      filterDateToInput.value = managementFilters.dateTo;
+      filterMinItemsInput.value = managementFilters.minItems;
+      filterMaxItemsInput.value = managementFilters.maxItems;
+      managementFilterModal.classList.add('open');
+      managementFilterModal.setAttribute('aria-hidden', 'false');
+      filterDateFromInput.focus();
+    }
+
+    function closeManagementFilterModal() {
+      managementFilterModal.classList.remove('open');
+      managementFilterModal.setAttribute('aria-hidden', 'true');
+    }
+
+    function applyManagementFilters() {
+      managementFilters = {
+        dateFrom: filterDateFromInput.value,
+        dateTo: filterDateToInput.value,
+        minItems: filterMinItemsInput.value.trim(),
+        maxItems: filterMaxItemsInput.value.trim()
+      };
+      closeManagementFilterModal();
+      renderManagementPanel();
+    }
+
+    function clearManagementFilters() {
+      managementFilters = { dateFrom: '', dateTo: '', minItems: '', maxItems: '' };
+      filterDateFromInput.value = '';
+      filterDateToInput.value = '';
+      filterMinItemsInput.value = '';
+      filterMaxItemsInput.value = '';
+      renderManagementPanel();
     }
 
     function formatDateLabel(iso) {
@@ -1164,13 +1893,16 @@
       setVisible(sliceTopbar, currentPageMode === 'slice', 'grid');
       setVisible(reviewPanel, currentPageMode === 'review', 'grid');
       setVisible(spellingPanel, currentPageMode === 'spelling', 'grid');
+      setVisible(managementPanel, currentPageMode === 'manage', 'grid');
       setVisible(testTopbar, currentPageMode === 'test', 'grid');
       setVisible(stagePanel, showStage, 'block');
+      setVisible(sliceSavePanel, currentPageMode === 'slice', 'grid');
       setVisible(stageInfoPanel, showStage, 'grid');
 
       if (currentPageMode === 'test') loadTestItem();
       if (currentPageMode === 'review') renderReviewItem();
       if (currentPageMode === 'spelling') renderSpellingItem();
+      if (currentPageMode === 'manage') renderManagementPanel();
     }
 
     function measureChunkLayout(chunk) {
@@ -1204,7 +1936,22 @@
       return Math.max(320, canvas.clientWidth);
     }
 
+    function getRowViewportWidth() {
+      return getWorkWidth() - ROW_MARGIN * 2 - ROW_FRAME * 2;
+    }
+
     function getRowContentWidth(row) {
+      return getRowItems(row).reduce((sum, item, i) => {
+        const note = getChunkNoteLayout(item);
+        const extra = note && !row.noteBelow ? ANNOTATION_GAP + note.width + NOTE_BUTTON_GAP + NOTE_BUTTON_W : 0;
+        const itemWidth = note && row.noteBelow
+          ? Math.max(item.w, note.width + NOTE_BUTTON_GAP + NOTE_BUTTON_W)
+          : item.w;
+        return sum + itemWidth + extra + (i ? SPLIT_GAP : 0);
+      }, 0);
+    }
+
+    function getRowInlineContentWidth(row) {
       return getRowItems(row).reduce((sum, item, i) => {
         const note = getChunkNoteLayout(item);
         const extra = note ? ANNOTATION_GAP + note.width + NOTE_BUTTON_GAP + NOTE_BUTTON_W : 0;
@@ -1212,20 +1959,18 @@
       }, 0);
     }
 
-    function ensureRowScrollBounds(row) {
-      const viewportW = getWorkWidth() - ROW_MARGIN * 2 - ROW_FRAME * 2;
-      const maxScroll = Math.max(0, getRowContentWidth(row) - viewportW);
-      row.scrollX = Math.max(0, Math.min(maxScroll, row.scrollX || 0));
-    }
-
     function layoutRows(renderControls = true) {
       let y = 88;
+      const viewportW = Math.max(1, getRowViewportWidth() - 4);
       for (const row of rows) {
         if (row.y == null) row.y = y;
         row.targetY = y;
-        row.rowH = STRIP_H + ROW_FRAME * 2;
+        const hasNotes = getRowItems(row).some((item) => !!getChunkNoteLayout(item));
+        row.noteBelow = hasNotes && getRowInlineContentWidth(row) > viewportW;
         row.contentW = getRowContentWidth(row);
-        ensureRowScrollBounds(row);
+        row.scale = row.contentW > viewportW ? viewportW / row.contentW : 1;
+        row.rowH = STRIP_H + ROW_FRAME * 2;
+        if (row.noteBelow) row.rowH += (STRIP_H - 20) * row.scale + ANNOTATION_GAP;
         y += row.rowH + ROW_GAP;
       }
 
@@ -1329,6 +2074,7 @@
         const innerY = frameY + ROW_FRAME;
         const innerW = frameW - ROW_FRAME * 2;
         const contentW = innerW;
+        const scale = row.scale || 1;
 
         ctx.save();
         drawRoundedRect(frameX, frameY, frameW, frameH, 16);
@@ -1339,46 +2085,60 @@
         ctx.stroke();
         ctx.restore();
 
-        ctx.save();
-        ctx.beginPath();
-        drawRoundedRect(innerX, innerY, contentW, STRIP_H, 14);
-        ctx.clip();
-
-        let cursor = innerX - row.scrollX;
+        let cursor = innerX;
         const items = getRowItems(row);
         for (let i = 0; i < items.length; i++) {
           const chunk = items[i];
-          drawChunkAt(chunk, cursor, innerY);
+          const visualTop = innerY + (STRIP_H - STRIP_H * scale) / 2;
+          ctx.save();
+          ctx.translate(cursor, innerY + STRIP_H / 2);
+          ctx.scale(scale, scale);
+          ctx.translate(0, -STRIP_H / 2);
+          drawChunkAt(chunk, 0, 0);
+          ctx.restore();
+
+          const visualChunkW = chunk.w * scale;
           renderMap.push({
             row,
             rowId: row.id,
             chunk,
             itemIndex: i,
             x: cursor,
-            y: innerY,
-            w: chunk.w,
-            h: chunk.h,
-            center: { x: cursor + chunk.w / 2, y: innerY + chunk.h / 2 },
+            y: visualTop,
+            w: visualChunkW,
+            h: chunk.h * scale,
+            scale,
+            center: { x: cursor + visualChunkW / 2, y: innerY + STRIP_H / 2 },
             viewport: { x: innerX, y: innerY, w: contentW, h: STRIP_H }
           });
           const note = getChunkNoteLayout(chunk);
           if (note) {
-            const noteX = cursor + chunk.w + ANNOTATION_GAP;
+            const noteX = row.noteBelow ? cursor : cursor + (chunk.w + ANNOTATION_GAP) * scale;
+            const noteY = row.noteBelow
+              ? visualTop + STRIP_H * scale + ANNOTATION_GAP
+              : visualTop + 10 * scale;
             chunk.noteRect = {
               x: noteX,
-              y: innerY + 10,
-              w: note.width,
-              h: note.height,
-              fontSize: note.fontSize
+              y: noteY,
+              w: note.width * scale,
+              h: note.height * scale,
+              fontSize: note.fontSize * scale,
+              scale,
+              baseW: note.width,
+              baseH: note.height,
+              baseFontSize: note.fontSize
             };
-            cursor += chunk.w + ANNOTATION_GAP + note.width + NOTE_BUTTON_GAP + NOTE_BUTTON_W;
+            if (row.noteBelow) {
+              cursor += Math.max(chunk.w, note.width + NOTE_BUTTON_GAP + NOTE_BUTTON_W) * scale;
+            } else {
+              cursor += (chunk.w + ANNOTATION_GAP + note.width + NOTE_BUTTON_GAP + NOTE_BUTTON_W) * scale;
+            }
           } else {
             chunk.noteRect = null;
-            cursor += chunk.w;
+            cursor += chunk.w * scale;
           }
-          if (i < items.length - 1) cursor += SPLIT_GAP;
+          if (i < items.length - 1) cursor += SPLIT_GAP * scale;
         }
-        ctx.restore();
       }
     }
 
@@ -1554,15 +2314,15 @@
       let wordHit = false;
 
       for (const entry of renderMap) {
-        const { chunk, x, y, h, viewport } = entry;
+        const { chunk, x, y, h, viewport, scale } = entry;
         if (Math.max(a.y, b.y) < y - 20 || Math.min(a.y, b.y) > y + h + 20) continue;
         if (Math.max(a.x, b.x) < viewport.x || Math.min(a.x, b.x) > viewport.x + viewport.w) continue;
 
         for (const word of chunk.layout.words) {
-          const wx = x + word.x;
-          const wy = y + 10;
-          const ww = word.w;
-          const wh = h - 20;
+          const wx = x + word.x * scale;
+          const wy = y + 10 * scale;
+          const ww = word.w * scale;
+          const wh = (chunk.h - 20) * scale;
           const cx = wx + ww / 2;
           const cy = wy + wh / 2;
           const distance = pointToSegmentDistance(cx, cy, a.x, a.y, b.x, b.y);
@@ -1573,7 +2333,7 @@
         }
 
         for (const boundary of chunk.layout.boundaries) {
-          const bx = x + boundary.centerX;
+          const bx = x + boundary.centerX * scale;
           if (bx < viewport.x || bx > viewport.x + viewport.w) continue;
           const distance = pointToSegmentDistance(bx, y + h / 2, a.x, a.y, b.x, b.y);
           if (distance <= SWIPE_HIT_RADIUS) {
@@ -1659,11 +2419,11 @@
       flashLine = {
         x: flashX,
         y1: entry.y - 8,
-        y2: entry.y + chunk.h + 8,
+        y2: entry.y + entry.h + 8,
         life: 1,
         color: 'rgba(134,239,172,0.95)'
       };
-      spawnParticles(flashX, entry.y + chunk.h / 2, 'rgba(134,239,172,0.95)');
+      spawnParticles(flashX, entry.y + entry.h / 2, 'rgba(134,239,172,0.95)');
       setStatus('Nice cut. The word strip split at a legal character boundary.', 'good');
     }
 
@@ -1745,37 +2505,9 @@
       return { x: clientX - rect.left, y: clientY - rect.top };
     }
 
-    function hitRowFrameLayer(pos) {
-      const frameX = ROW_MARGIN;
-      const frameW = getWorkWidth() - ROW_MARGIN * 2;
-      for (const row of rows) {
-        const frameY = row.y;
-        const frameH = row.rowH;
-        if (!pointInRect(pos, { x: frameX, y: frameY, w: frameW, h: frameH })) continue;
-        const inner = {
-          x: frameX + ROW_FRAME,
-          y: frameY + ROW_FRAME,
-          w: frameW - ROW_FRAME * 2,
-          h: STRIP_H
-        };
-        if (!pointInRect(pos, inner)) return row;
-      }
-      return null;
-    }
-
     function startPointer(evt) {
       evt.preventDefault();
       const pos = getPos(evt);
-      const layerRow = hitRowFrameLayer(pos);
-
-      if (layerRow) {
-        dragMode = 'pan';
-        activeRow = layerRow;
-        panAnchorX = pos.x;
-        panStartScroll = layerRow.scrollX;
-        return;
-      }
-
       dragMode = 'gesture';
       swipePoints = [pos];
     }
@@ -1788,9 +2520,6 @@
       if (dragMode === 'gesture') {
         swipePoints.push(pos);
         if (swipePoints.length > GESTURE_POINT_LIMIT) swipePoints.shift();
-      } else if (dragMode === 'pan' && activeRow) {
-        activeRow.scrollX = panStartScroll - (pos.x - panAnchorX);
-        ensureRowScrollBounds(activeRow);
       }
     }
 
@@ -1803,12 +2532,9 @@
         swipePoints.push(pos);
         analyzeGesture();
         setTimeout(() => { swipePoints = []; }, 70);
-      } else if (dragMode === 'pan') {
-        setStatus('Dragged row horizontally to inspect cropped content.');
       }
 
       dragMode = null;
-      activeRow = null;
     }
 
     function iconSvg(name) {
@@ -1880,9 +2606,9 @@
         if (!chunk || !chunk.noteRect) continue;
         const input = control.querySelector('.rowEditInput');
         if (input) {
-          input.style.width = `${chunk.noteRect.w}px`;
-          input.style.height = `${chunk.noteRect.h}px`;
-          input.style.fontSize = `${chunk.noteRect.fontSize}px`;
+          input.style.width = `${chunk.noteRect.baseW}px`;
+          input.style.height = `${chunk.noteRect.baseH}px`;
+          input.style.fontSize = `${chunk.noteRect.baseFontSize}px`;
           input.style.borderColor = chunk.noteCheckState === 'correct'
             ? 'rgba(134,239,172,0.95)'
             : chunk.noteCheckState === 'wrong'
@@ -1891,6 +2617,7 @@
         }
         control.style.left = `${chunk.noteRect.x}px`;
         control.style.top = `${chunk.noteRect.y + chunk.noteRect.h / 2}px`;
+        control.style.transform = `translateY(-50%) scale(${chunk.noteRect.scale})`;
       }
     }
 
@@ -1975,13 +2702,15 @@
     }
 
     loadBtn.addEventListener('click', loadSentence);
-    resetBtn.addEventListener('click', loadSentence);
     saveToSetBtn.addEventListener('click', () => {
-      saveWordToStudySet(studySetSelect.value);
+      const saved = saveWordToStudySet(studySetSelect.value);
+      if (saved) openSavedSetModal(saved.record, saved.set);
     });
     saveToNewSetBtn.addEventListener('click', openNewSetModal);
     cancelNewSetBtn.addEventListener('click', closeNewSetModal);
     confirmNewSetBtn.addEventListener('click', createNewStudySet);
+    addAnotherVocBtn.addEventListener('click', handleAddAnotherVocabulary);
+    proceedReviewBtn.addEventListener('click', handleProceedToReview);
     sentenceInput.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') loadSentence();
     });
@@ -2045,6 +2774,53 @@
     });
     spellingAnswerInput.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') checkSpellingItem();
+    });
+    managementSearchInput.addEventListener('input', renderManagementPanel);
+    managementSortSelect.addEventListener('change', renderManagementPanel);
+    openFilterBtn.addEventListener('click', openManagementFilterModal);
+    cancelFilterBtn.addEventListener('click', closeManagementFilterModal);
+    applyFilterBtn.addEventListener('click', applyManagementFilters);
+    clearFilterBtn.addEventListener('click', clearManagementFilters);
+    importSetBtn.addEventListener('click', () => importSetInput.click());
+    importSetInput.addEventListener('change', () => {
+      const file = importSetInput.files?.[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        importStudySetFromCsv(String(reader.result || ''));
+        importSetInput.value = '';
+      };
+      reader.readAsText(file);
+    });
+    managementBrowser.addEventListener('click', (e) => {
+      const button = e.target.closest('[data-action]');
+      if (!button) return;
+      const card = button.closest('.studySetCard');
+      const setId = card?.dataset.setId || '';
+      const row = button.closest('.managedVoc');
+      const itemId = row?.dataset.itemId || '';
+      const set = getStudySetById(setId);
+      const item = set?.items.find((entry) => entry.id === itemId);
+      const action = button.dataset.action;
+
+      if (action === 'toggle-set') {
+        expandedStudySetId = expandedStudySetId === setId ? '' : setId;
+        expandedVocabularyId = '';
+        renderManagementPanel();
+      }
+      if (action === 'rename-set') {
+        const input = card.querySelector('[data-role="rename-input"]');
+        renameStudySet(setId, input?.value.trim() || '');
+      }
+      if (action === 'duplicate-set') duplicateStudySet(setId);
+      if (action === 'delete-set') deleteStudySet(setId);
+      if (action === 'export-set') exportStudySet(setId);
+      if (action === 'toggle-voc') {
+        expandedVocabularyId = expandedVocabularyId === itemId ? '' : itemId;
+        renderManagementPanel();
+      }
+      if (action === 'edit-item' && item) loadRecordIntoSlicing(item);
+      if (action === 'remove-item' && item) removeManagedItem(setId, item.id);
     });
     pageTabs.forEach((tab) => {
       tab.addEventListener('click', () => {
@@ -2122,6 +2898,12 @@
     });
     newSetModal.addEventListener('click', (e) => {
       if (e.target === newSetModal) closeNewSetModal();
+    });
+    savedSetModal.addEventListener('click', (e) => {
+      if (e.target === savedSetModal) closeSavedSetModal();
+    });
+    managementFilterModal.addEventListener('click', (e) => {
+      if (e.target === managementFilterModal) closeManagementFilterModal();
     });
 
     resizeCanvas();
