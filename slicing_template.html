@@ -30,13 +30,27 @@
         linear-gradient(180deg, var(--bg2), var(--bg1));
       display: flex;
       justify-content: center;
+      align-items: flex-start;
       padding: 20px;
     }
 
     .app {
       width: min(1100px, 100%);
+      min-width: 0;
       display: grid;
       gap: 16px;
+      align-content: start;
+    }
+
+    .modeHost {
+      display: grid;
+      gap: 16px;
+      min-width: 0;
+      align-content: start;
+    }
+
+    .hidden {
+      display: none !important;
     }
 
     .panel {
@@ -45,12 +59,55 @@
       border-radius: 18px;
       backdrop-filter: blur(10px);
       box-shadow: 0 20px 40px rgba(0,0,0,0.22);
+      min-width: 0;
     }
 
     .topbar {
       padding: 16px 18px;
       display: grid;
       gap: 12px;
+      min-width: 0;
+    }
+
+    .pageTabs {
+      display: flex;
+      gap: 10px;
+      flex-wrap: nowrap;
+      align-items: center;
+      justify-content: flex-start;
+      padding: 14px 18px;
+      height: 98px;
+      overflow-x: auto;
+      overflow-y: hidden;
+      scrollbar-width: thin;
+      box-sizing: border-box;
+    }
+
+    .pageTab {
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 999px;
+      width: 190px;
+      min-width: 190px;
+      height: 68px;
+      padding: 0 20px;
+      background: rgba(255,255,255,0.08);
+      color: var(--text);
+      font-size: 0.94rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      white-space: nowrap;
+      flex: 0 0 auto;
+      align-self: center;
+      max-height: 68px;
+    }
+
+    .pageTab.active {
+      background: linear-gradient(135deg, rgba(125,211,252,0.95), rgba(192,132,252,0.95));
+      color: #082032;
+      border-color: rgba(255,255,255,0.18);
     }
 
     .title {
@@ -155,6 +212,87 @@
 
     .studyBar button {
       white-space: nowrap;
+    }
+
+    .reviewFilters,
+    .testBar,
+    .spellingBar {
+      display: grid;
+      gap: 10px;
+      align-items: center;
+      min-width: 0;
+    }
+
+    .reviewFilters {
+      grid-template-columns: minmax(180px, 1fr) 180px 180px minmax(220px, 320px);
+    }
+
+    .testBar,
+    .spellingBar {
+      grid-template-columns: minmax(220px, 320px) auto auto auto;
+    }
+
+    /* Grid items default to min-width:auto, which can force these mode panels
+       wider than the viewport and make the whole page scroll horizontally. */
+    #modeHost,
+    .reviewFilters > *,
+    .testBar > *,
+    .spellingBar > * {
+      min-width: 0;
+    }
+
+    .reviewContent,
+    .spellingContent {
+      display: grid;
+      gap: 14px;
+      min-width: 0;
+    }
+
+    .reviewHeader,
+    .testHeader,
+    .spellingHeader {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+      min-width: 0;
+    }
+
+    .segmentRow {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .segmentToken {
+      padding: 10px 14px;
+      border-radius: 14px;
+      background: linear-gradient(180deg, rgba(254,240,138,0.95), rgba(251,191,36,0.95));
+      color: #3b2200;
+      font-weight: 700;
+      min-width: 54px;
+      text-align: center;
+    }
+
+    .segmentNote {
+      padding: 10px 14px;
+      border-radius: 14px;
+      background: rgba(148,163,184,0.22);
+      border: 1px solid rgba(255,255,255,0.14);
+      color: rgba(226,232,240,0.96);
+      min-width: 72px;
+    }
+
+    .spellingNotes {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .answerInput {
+      width: min(360px, 100%);
     }
 
     .modalBackdrop {
@@ -324,57 +462,130 @@
       .controls { grid-template-columns: 1fr 1fr; }
       .studyBar { grid-template-columns: 1fr; }
       .info { grid-template-columns: 1fr; }
+      .reviewFilters { grid-template-columns: 1fr; }
+      .testBar,
+      .spellingBar { grid-template-columns: 1fr; }
+      .pageTab {
+        width: 170px;
+        min-width: 170px;
+        height: 62px;
+        max-height: 62px;
+      }
     }
   </style>
 </head>
 <body>
   <div class="app">
-    <section class="panel topbar">
-      <div>
-        <h1 class="title">Vocabulary Slicing Template</h1>
-        <p class="sub">Load a target vocabulary word and work in auto, slice, or lasso mode. Hyphens are treated as their own sliceable characters.</p>
-      </div>
-      <div id="modeBar" class="modeBar">
-        <button type="button" class="modeBtn active" data-mode="auto">Auto</button>
-        <button type="button" class="modeBtn" data-mode="slice">Slice</button>
-        <button type="button" class="modeBtn" data-mode="lasso">Lasso</button>
-      </div>
-      <div class="controls">
-        <input id="sentenceInput" type="text" value="vocabulary" />
-        <button id="loadBtn">Load Word</button>
-        <button id="resetBtn" class="secondary">Reset Cuts</button>
-      </div>
-      <div class="studyBar">
-        <select id="studySetSelect"></select>
-        <button id="saveToSetBtn" type="button">Save Word To Study Set</button>
-        <button id="saveToNewSetBtn" type="button" class="secondary">Save To New Study Set</button>
-      </div>
+    <section class="panel pageTabs">
+      <button type="button" class="pageTab active" data-page-mode="slice">Voc Slicing</button>
+      <button type="button" class="pageTab" data-page-mode="review">Voc Review</button>
+      <button type="button" class="pageTab" data-page-mode="test">Voc Test</button>
+      <button type="button" class="pageTab" data-page-mode="spelling">Voc Spelling</button>
     </section>
 
-    <section class="panel stageWrap">
-      <canvas id="stage"></canvas>
-      <div id="rowControlsLayer" class="rowControlsLayer"></div>
-    </section>
+    <div id="modeHost" class="modeHost">
+      <section id="sliceTopbar" class="panel topbar">
+        <div>
+          <h1 class="title">Vocabulary Slicing Template</h1>
+          <p class="sub">Load a target vocabulary word and work in auto, slice, or lasso mode. Hyphens are treated as their own sliceable characters.</p>
+        </div>
+        <div id="modeBar" class="modeBar">
+          <button type="button" class="modeBtn active" data-mode="auto">Auto</button>
+          <button type="button" class="modeBtn" data-mode="slice">Slice</button>
+          <button type="button" class="modeBtn" data-mode="lasso">Lasso</button>
+        </div>
+        <div class="controls">
+          <input id="sentenceInput" type="text" value="vocabulary" />
+          <button id="loadBtn">Load Word</button>
+          <button id="resetBtn" class="secondary">Reset Cuts</button>
+        </div>
+        <div class="studyBar">
+          <select id="studySetSelect"></select>
+          <button id="saveToSetBtn" type="button">Save Word To Study Set</button>
+          <button id="saveToNewSetBtn" type="button" class="secondary">Save To New Study Set</button>
+        </div>
+      </section>
 
-    <section class="info">
-      <div class="panel legend">
-        <h2>How it works</h2>
-        <ul>
-          <li>Each character in the target vocabulary word becomes its own slice unit.</li>
-          <li>Auto mode detects a mostly one-direction stroke as slicing and a looping path as lassoing.</li>
-          <li>Lasso closes itself with a straight line if the path does not fully reconnect.</li>
-          <li>Hyphens stay in the sequence and can be sliced on either side.</li>
-          <li>Slicing through the body of a character tile is rejected.</li>
-          <li>Drag horizontally on a row frame to inspect long content.</li>
-          <li>This template only keeps the slicing window and related logic.</li>
-        </ul>
-        <div id="status" class="status">Ready.</div>
-      </div>
-      <div class="panel chunks">
-        <h2>Current chunks</h2>
-        <div id="chunkList" class="chunkList"></div>
-      </div>
-    </section>
+      <section id="reviewPanel" class="panel topbar hidden">
+        <div class="reviewHeader">
+          <div>
+            <h1 class="title">Vocabulary Review</h1>
+            <p class="sub">Search study sets, pick one, and review each saved vocabulary record.</p>
+          </div>
+        </div>
+        <div class="reviewFilters">
+          <input id="reviewSearchInput" type="text" placeholder="Search study set name" />
+          <input id="reviewDateFromInput" type="date" />
+          <input id="reviewDateToInput" type="date" />
+          <select id="reviewSetSelect"></select>
+        </div>
+        <div class="testBar">
+          <button id="reviewPrevBtn" type="button" class="secondary"><</button>
+          <button id="reviewNextBtn" type="button" class="secondary">></button>
+          <div id="reviewCounter" class="sub"></div>
+        </div>
+        <div id="reviewContent" class="reviewContent"></div>
+      </section>
+
+      <section id="spellingPanel" class="panel topbar hidden">
+        <div class="spellingHeader">
+          <div>
+            <h1 class="title">Vocabulary Spelling</h1>
+            <p class="sub">Read the saved note content, spell the hidden target vocabulary, and move on only after a correct answer.</p>
+          </div>
+        </div>
+        <div class="spellingBar">
+          <select id="spellingSetSelect"></select>
+          <button id="checkSpellingBtn" type="button">Check</button>
+          <button id="nextSpellingBtn" type="button" class="secondary">Next</button>
+          <div id="spellingCounter" class="sub"></div>
+        </div>
+        <div id="spellingContent" class="spellingContent">
+          <div id="spellingNotes" class="spellingNotes"></div>
+          <input id="spellingAnswerInput" class="answerInput" type="text" placeholder="Type the target vocabulary" />
+        </div>
+      </section>
+
+      <section id="testTopbar" class="panel topbar hidden">
+        <div class="testHeader">
+          <div>
+            <h1 class="title">Vocabulary Test</h1>
+            <p class="sub">Re-slice the saved vocabulary and re-enter the associated note content. You can proceed only after a correct answer.</p>
+          </div>
+        </div>
+        <div class="testBar">
+          <select id="testSetSelect"></select>
+          <button id="checkTestBtn" type="button">Check</button>
+          <button id="nextTestBtn" type="button" class="secondary">Next</button>
+          <button id="resetTestBtn" type="button" class="secondary">Reset Item</button>
+        </div>
+      </section>
+
+      <section id="stagePanel" class="panel stageWrap">
+        <canvas id="stage"></canvas>
+        <div id="rowControlsLayer" class="rowControlsLayer"></div>
+      </section>
+
+      <section id="stageInfoPanel" class="info">
+        <div class="panel legend">
+          <h2>How it works</h2>
+          <ul>
+            <li>Each character in the target vocabulary word becomes its own slice unit.</li>
+            <li>Auto mode detects a mostly one-direction stroke as slicing and a looping path as lassoing.</li>
+            <li>Lasso closes itself with a straight line if the path does not fully reconnect.</li>
+            <li>Hyphens stay in the sequence and can be sliced on either side.</li>
+            <li>Slicing through the body of a character tile is rejected.</li>
+            <li>Drag horizontally on a row frame to inspect long content.</li>
+            <li>This template only keeps the slicing window and related logic.</li>
+          </ul>
+          <div id="status" class="status">Ready.</div>
+        </div>
+        <div class="panel chunks">
+          <h2>Current chunks</h2>
+          <div id="chunkList" class="chunkList"></div>
+        </div>
+      </section>
+    </div>
   </div>
 
   <div id="newSetModal" class="modalBackdrop" aria-hidden="true">
@@ -392,6 +603,13 @@
   </div>
 
   <script>
+    const pageTabs = document.querySelectorAll('.pageTab');
+    const sliceTopbar = document.getElementById('sliceTopbar');
+    const testTopbar = document.getElementById('testTopbar');
+    const stagePanel = document.getElementById('stagePanel');
+    const stageInfoPanel = document.getElementById('stageInfoPanel');
+    const reviewPanel = document.getElementById('reviewPanel');
+    const spellingPanel = document.getElementById('spellingPanel');
     const canvas = document.getElementById('stage');
     const ctx = canvas.getContext('2d');
     const sentenceInput = document.getElementById('sentenceInput');
@@ -404,6 +622,24 @@
     const newSetNameInput = document.getElementById('newSetNameInput');
     const cancelNewSetBtn = document.getElementById('cancelNewSetBtn');
     const confirmNewSetBtn = document.getElementById('confirmNewSetBtn');
+    const reviewSearchInput = document.getElementById('reviewSearchInput');
+    const reviewDateFromInput = document.getElementById('reviewDateFromInput');
+    const reviewDateToInput = document.getElementById('reviewDateToInput');
+    const reviewSetSelect = document.getElementById('reviewSetSelect');
+    const reviewPrevBtn = document.getElementById('reviewPrevBtn');
+    const reviewNextBtn = document.getElementById('reviewNextBtn');
+    const reviewCounter = document.getElementById('reviewCounter');
+    const reviewContent = document.getElementById('reviewContent');
+    const testSetSelect = document.getElementById('testSetSelect');
+    const checkTestBtn = document.getElementById('checkTestBtn');
+    const nextTestBtn = document.getElementById('nextTestBtn');
+    const resetTestBtn = document.getElementById('resetTestBtn');
+    const spellingSetSelect = document.getElementById('spellingSetSelect');
+    const checkSpellingBtn = document.getElementById('checkSpellingBtn');
+    const nextSpellingBtn = document.getElementById('nextSpellingBtn');
+    const spellingCounter = document.getElementById('spellingCounter');
+    const spellingNotes = document.getElementById('spellingNotes');
+    const spellingAnswerInput = document.getElementById('spellingAnswerInput');
     const chunkList = document.getElementById('chunkList');
     const statusEl = document.getElementById('status');
     const modeBar = document.getElementById('modeBar');
@@ -448,6 +684,12 @@
     let nextRowId = 1;
     let currentWord = '';
     let currentMode = 'auto';
+    let currentPageMode = 'slice';
+    let reviewItemIndex = 0;
+    let testItemIndex = 0;
+    let spellingItemIndex = 0;
+    let testPassedCurrent = false;
+    let spellingPassedCurrent = false;
 
     function tokenize(word) {
       return word.replace(/\s+/g, '').split('').filter(Boolean);
@@ -567,7 +809,37 @@
       try {
         const raw = localStorage.getItem(STUDY_SET_STORAGE_KEY);
         const parsed = raw ? JSON.parse(raw) : [];
-        return Array.isArray(parsed) ? parsed : [];
+        if (!Array.isArray(parsed)) return [];
+        return parsed.map((set, setIndex) => {
+          const createdAt = set.createdAt || new Date().toISOString();
+          const items = Array.isArray(set.items)
+            ? set.items.map((item, itemIndex) => ({
+                id: item.id || `item-${setIndex}-${itemIndex}`,
+                word: item.word || '',
+                createdAt: item.createdAt || createdAt,
+                segments: Array.isArray(item.segments) && item.segments.length
+                  ? item.segments.map((segment) => ({
+                      text: segment.text || '',
+                      note: segment.note || ''
+                    }))
+                  : [{ text: item.word || '', note: '' }]
+              }))
+            : Array.isArray(set.words)
+              ? set.words.map((word, itemIndex) => ({
+                  id: `legacy-${setIndex}-${itemIndex}`,
+                  word,
+                  createdAt,
+                  segments: [{ text: word, note: '' }]
+                }))
+              : [];
+
+          return {
+            id: set.id || `set-${setIndex}`,
+            name: set.name || `Study Set ${setIndex + 1}`,
+            createdAt,
+            items
+          };
+        });
       } catch {
         return [];
       }
@@ -579,52 +851,88 @@
 
     function renderStudySetOptions(selectedName = '') {
       const studySets = loadStudySets();
-      studySetSelect.innerHTML = '';
+      const selects = [studySetSelect, reviewSetSelect, testSetSelect, spellingSetSelect];
 
-      if (!studySets.length) {
-        const option = document.createElement('option');
-        option.value = '';
-        option.textContent = 'No study sets yet';
-        studySetSelect.appendChild(option);
-        studySetSelect.disabled = true;
-        saveToSetBtn.disabled = true;
-        return;
+      for (const select of selects) {
+        select.innerHTML = '';
+        if (!studySets.length) {
+          const option = document.createElement('option');
+          option.value = '';
+          option.textContent = 'No study sets yet';
+          select.appendChild(option);
+          select.disabled = true;
+          continue;
+        }
+
+        for (const set of studySets) {
+          const option = document.createElement('option');
+          option.value = set.id;
+          option.textContent = `${set.name} (${set.items.length})`;
+          select.appendChild(option);
+        }
+
+        select.disabled = false;
       }
 
-      for (const set of studySets) {
-        const option = document.createElement('option');
-        option.value = set.name;
-        option.textContent = `${set.name} (${set.words.length})`;
-        studySetSelect.appendChild(option);
+      saveToSetBtn.disabled = !studySets.length;
+      const targetId = selectedName
+        ? (studySets.find((set) => set.name === selectedName || set.id === selectedName)?.id || '')
+        : (studySets[0]?.id || '');
+      for (const select of selects) {
+        if (targetId && studySets.some((set) => set.id === targetId)) select.value = targetId;
       }
-
-      studySetSelect.disabled = false;
-      saveToSetBtn.disabled = false;
-      if (selectedName && studySets.some((set) => set.name === selectedName)) {
-        studySetSelect.value = selectedName;
+      renderReviewStudySetOptions();
+      if (targetId && [...reviewSetSelect.options].some((option) => option.value === targetId)) {
+        reviewSetSelect.value = targetId;
       }
+      renderReviewItem();
+      loadTestItem();
+      renderSpellingItem();
     }
 
-    function saveWordToStudySet(setName) {
+    function serializeCurrentVocabularyRecord() {
       const word = getCurrentWordForSaving();
-      const trimmedName = (setName || '').trim();
-      if (!trimmedName) {
+      const segments = rows
+        .flatMap((row) => getRowItems(row))
+        .sort((a, b) => a.start - b.start)
+        .map((chunk) => ({
+          text: chunk.words.join(''),
+          note: (chunk.noteText || '').trim()
+        }));
+
+      return {
+        id: `item-${Date.now()}`,
+        word,
+        createdAt: new Date().toISOString(),
+        segments: segments.length ? segments : [{ text: word, note: '' }]
+      };
+    }
+
+    function getStudySetById(setId) {
+      return loadStudySets().find((set) => set.id === setId) || null;
+    }
+
+    function saveWordToStudySet(setId) {
+      const record = serializeCurrentVocabularyRecord();
+      if (!setId) {
         setStatus('Choose a study set first.', 'bad');
         return false;
       }
 
       const studySets = loadStudySets();
-      const targetSet = studySets.find((set) => set.name === trimmedName);
+      const targetSet = studySets.find((set) => set.id === setId);
       if (!targetSet) {
         setStatus('Selected study set was not found.', 'bad');
         renderStudySetOptions();
         return false;
       }
 
-      if (!targetSet.words.includes(word)) targetSet.words.push(word);
+      const existingIndex = targetSet.items.findIndex((item) => item.word === record.word);
+      if (existingIndex >= 0) targetSet.items.splice(existingIndex, 1, record);
+      else targetSet.items.push(record);
       persistStudySets(studySets);
-      renderStudySetOptions(trimmedName);
-      setStatus(`Saved "${word}" to ${trimmedName}.`, 'good');
+      renderStudySetOptions(targetSet.id);
+      setStatus(`Saved "${record.word}" to ${targetSet.name}.`, 'good');
       return true;
     }
 
@@ -655,11 +963,214 @@
         return;
       }
 
-      studySets.push({ name, words: [] });
+      const newSet = {
+        id: `set-${Date.now()}`,
+        name,
+        createdAt: new Date().toISOString(),
+        items: []
+      };
+      studySets.push(newSet);
       persistStudySets(studySets);
-      renderStudySetOptions(name);
+      renderStudySetOptions(newSet.id);
       closeNewSetModal();
-      saveWordToStudySet(name);
+      saveWordToStudySet(newSet.id);
+    }
+
+    function formatDateLabel(iso) {
+      const date = new Date(iso);
+      if (Number.isNaN(date.getTime())) return '';
+      return date.toISOString().slice(0, 10);
+    }
+
+    function getFilteredReviewStudySets() {
+      const query = reviewSearchInput.value.trim().toLowerCase();
+      const dateFrom = reviewDateFromInput.value;
+      const dateTo = reviewDateToInput.value;
+
+      return loadStudySets().filter((set) => {
+        const nameOk = !query || set.name.toLowerCase().includes(query);
+        const created = formatDateLabel(set.createdAt);
+        const fromOk = !dateFrom || created >= dateFrom;
+        const toOk = !dateTo || created <= dateTo;
+        return nameOk && fromOk && toOk;
+      });
+    }
+
+    function renderReviewStudySetOptions() {
+      const filteredSets = getFilteredReviewStudySets();
+      reviewSetSelect.innerHTML = '';
+      if (!filteredSets.length) {
+        const option = document.createElement('option');
+        option.value = '';
+        option.textContent = 'No matching study sets';
+        reviewSetSelect.appendChild(option);
+        reviewSetSelect.disabled = true;
+        return;
+      }
+
+      for (const set of filteredSets) {
+        const option = document.createElement('option');
+        option.value = set.id;
+        option.textContent = `${set.name} (${set.items.length})`;
+        reviewSetSelect.appendChild(option);
+      }
+      reviewSetSelect.disabled = false;
+    }
+
+    function renderReviewItem() {
+      const set = getStudySetById(reviewSetSelect.value);
+      reviewContent.innerHTML = '';
+      if (!set || !set.items.length) {
+        reviewCounter.textContent = 'No vocabulary in this study set.';
+        return;
+      }
+
+      reviewItemIndex = Math.max(0, Math.min(set.items.length - 1, reviewItemIndex));
+      const item = set.items[reviewItemIndex];
+      reviewCounter.textContent = `${reviewItemIndex + 1} / ${set.items.length}  Created ${formatDateLabel(item.createdAt)}`;
+
+      const wordTitle = document.createElement('h2');
+      wordTitle.textContent = item.word;
+      reviewContent.appendChild(wordTitle);
+
+      for (const segment of item.segments) {
+        const row = document.createElement('div');
+        row.className = 'segmentRow';
+        const token = document.createElement('div');
+        token.className = 'segmentToken';
+        token.textContent = segment.text;
+        const note = document.createElement('div');
+        note.className = 'segmentNote';
+        note.textContent = segment.note || '(no note)';
+        row.append(token, note);
+        reviewContent.appendChild(row);
+      }
+    }
+
+    function loadTestItem() {
+      const set = getStudySetById(testSetSelect.value);
+      if (!set || !set.items.length) {
+        nextTestBtn.disabled = true;
+        return;
+      }
+
+      testItemIndex = Math.max(0, Math.min(set.items.length - 1, testItemIndex));
+      const item = set.items[testItemIndex];
+      testPassedCurrent = false;
+      sentenceInput.value = item.word;
+      currentWord = item.word;
+      rows = buildInitialRows(item.word);
+      clearChunkFeedback();
+      layoutRows();
+      nextTestBtn.disabled = true;
+      setStatus(`Test item ${testItemIndex + 1} loaded.`, 'good');
+    }
+
+    function serializeRowsForCheck() {
+      return rows
+        .flatMap((row) => getRowItems(row))
+        .sort((a, b) => a.start - b.start)
+        .map((chunk) => ({
+          chunk,
+          text: chunk.words.join(''),
+          note: (chunk.noteText || '').trim()
+        }));
+    }
+
+    function clearChunkFeedback() {
+      for (const row of rows) {
+        for (const chunk of getRowItems(row)) {
+          chunk.checkState = '';
+          chunk.noteCheckState = '';
+        }
+      }
+    }
+
+    function checkTestItem() {
+      const set = getStudySetById(testSetSelect.value);
+      if (!set || !set.items.length) return;
+      const target = set.items[testItemIndex];
+      const current = serializeRowsForCheck();
+      const expected = target.segments;
+      clearChunkFeedback();
+
+      let allCorrect = current.length === expected.length;
+      const compareLength = Math.max(current.length, expected.length);
+      for (let i = 0; i < compareLength; i++) {
+        const currentSegment = current[i];
+        const expectedSegment = expected[i];
+        if (!currentSegment) {
+          allCorrect = false;
+          continue;
+        }
+
+        currentSegment.chunk.checkState = currentSegment.text === expectedSegment?.text ? 'correct' : 'wrong';
+        currentSegment.chunk.noteCheckState = currentSegment.note === (expectedSegment?.note || '') ? 'correct' : 'wrong';
+        if (currentSegment.chunk.checkState !== 'correct' || currentSegment.chunk.noteCheckState !== 'correct') {
+          allCorrect = false;
+        }
+      }
+
+      testPassedCurrent = allCorrect;
+      nextTestBtn.disabled = !allCorrect;
+      layoutRows(false);
+      setStatus(allCorrect ? 'Correct. You can move to the next vocabulary.' : 'Not correct yet. Fix the red pieces and try again.', allCorrect ? 'good' : 'bad');
+    }
+
+    function renderSpellingItem() {
+      const set = getStudySetById(spellingSetSelect.value);
+      spellingNotes.innerHTML = '';
+      if (!set || !set.items.length) {
+        spellingCounter.textContent = 'No vocabulary in this study set.';
+        return;
+      }
+
+      spellingItemIndex = Math.max(0, Math.min(set.items.length - 1, spellingItemIndex));
+      const item = set.items[spellingItemIndex];
+      spellingCounter.textContent = `${spellingItemIndex + 1} / ${set.items.length}`;
+      for (const segment of item.segments) {
+        const note = document.createElement('div');
+        note.className = 'segmentNote';
+        note.textContent = segment.note || '(no note)';
+        spellingNotes.appendChild(note);
+      }
+      spellingAnswerInput.value = '';
+      spellingAnswerInput.style.borderColor = 'rgba(255,255,255,0.16)';
+      spellingPassedCurrent = false;
+      nextSpellingBtn.disabled = true;
+    }
+
+    function checkSpellingItem() {
+      const set = getStudySetById(spellingSetSelect.value);
+      if (!set || !set.items.length) return;
+      const item = set.items[spellingItemIndex];
+      const answer = spellingAnswerInput.value.replace(/\s+/g, '').trim();
+      spellingPassedCurrent = answer === item.word;
+      nextSpellingBtn.disabled = !spellingPassedCurrent;
+      spellingAnswerInput.style.borderColor = spellingPassedCurrent ? 'rgba(134,239,172,0.95)' : 'rgba(252,165,165,0.95)';
+      setStatus(spellingPassedCurrent ? 'Correct spelling.' : 'Incorrect spelling. Try again.', spellingPassedCurrent ? 'good' : 'bad');
+    }
+
+    function updatePageMode() {
+      // Keep all mode sections in a stable DOM tree. Reparenting them caused layout
+      // flow bugs after the canvas/stage had grown in slice or test mode.
+      function setVisible(element, visible, displayValue) {
+        element.classList.toggle('hidden', !visible);
+        element.style.display = visible ? displayValue : 'none';
+      }
+
+      pageTabs.forEach((tab) => tab.classList.toggle('active', tab.dataset.pageMode === currentPageMode));
+      const showStage = currentPageMode === 'slice' || currentPageMode === 'test';
+      setVisible(sliceTopbar, currentPageMode === 'slice', 'grid');
+      setVisible(reviewPanel, currentPageMode === 'review', 'grid');
+      setVisible(spellingPanel, currentPageMode === 'spelling', 'grid');
+      setVisible(testTopbar, currentPageMode === 'test', 'grid');
+      setVisible(stagePanel, showStage, 'block');
+      setVisible(stageInfoPanel, showStage, 'grid');
+
+      if (currentPageMode === 'test') loadTestItem();
+      if (currentPageMode === 'review') renderReviewItem();
+      if (currentPageMode === 'spelling') renderSpellingItem();
     }
 
     function measureChunkLayout(chunk) {
@@ -753,11 +1264,19 @@
       const h = chunk.h;
 
       drawRoundedRect(x, y, w, h, 18);
-      const grad = ctx.createLinearGradient(x, y, x, y + h);
-      grad.addColorStop(0, 'rgba(254, 240, 138, 0.95)');
-      grad.addColorStop(1, 'rgba(251, 191, 36, 0.95)');
-      ctx.fillStyle = grad;
-      ctx.fill();
+      if (chunk.checkState === 'correct') {
+        ctx.fillStyle = 'rgba(134,239,172,0.92)';
+        ctx.fill();
+      } else if (chunk.checkState === 'wrong') {
+        ctx.fillStyle = 'rgba(252,165,165,0.92)';
+        ctx.fill();
+      } else {
+        const grad = ctx.createLinearGradient(x, y, x, y + h);
+        grad.addColorStop(0, 'rgba(254, 240, 138, 0.95)');
+        grad.addColorStop(1, 'rgba(251, 191, 36, 0.95)');
+        ctx.fillStyle = grad;
+        ctx.fill();
+      }
 
       ctx.lineWidth = 2;
       ctx.strokeStyle = 'rgba(255,255,255,0.45)';
@@ -1364,6 +1883,11 @@
           input.style.width = `${chunk.noteRect.w}px`;
           input.style.height = `${chunk.noteRect.h}px`;
           input.style.fontSize = `${chunk.noteRect.fontSize}px`;
+          input.style.borderColor = chunk.noteCheckState === 'correct'
+            ? 'rgba(134,239,172,0.95)'
+            : chunk.noteCheckState === 'wrong'
+              ? 'rgba(252,165,165,0.95)'
+              : 'rgba(255,255,255,0.16)';
         }
         control.style.left = `${chunk.noteRect.x}px`;
         control.style.top = `${chunk.noteRect.y + chunk.noteRect.h / 2}px`;
@@ -1461,6 +1985,73 @@
     sentenceInput.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') loadSentence();
     });
+    reviewSearchInput.addEventListener('input', () => {
+      renderReviewStudySetOptions();
+      reviewItemIndex = 0;
+      renderReviewItem();
+    });
+    reviewDateFromInput.addEventListener('change', () => {
+      renderReviewStudySetOptions();
+      reviewItemIndex = 0;
+      renderReviewItem();
+    });
+    reviewDateToInput.addEventListener('change', () => {
+      renderReviewStudySetOptions();
+      reviewItemIndex = 0;
+      renderReviewItem();
+    });
+    reviewSetSelect.addEventListener('change', () => {
+      reviewItemIndex = 0;
+      renderReviewItem();
+      testSetSelect.value = reviewSetSelect.value;
+      spellingSetSelect.value = reviewSetSelect.value;
+      loadTestItem();
+      renderSpellingItem();
+    });
+    reviewPrevBtn.addEventListener('click', () => {
+      const set = getStudySetById(reviewSetSelect.value);
+      if (!set || !set.items.length) return;
+      reviewItemIndex = Math.max(0, reviewItemIndex - 1);
+      renderReviewItem();
+    });
+    reviewNextBtn.addEventListener('click', () => {
+      const set = getStudySetById(reviewSetSelect.value);
+      if (!set || !set.items.length) return;
+      reviewItemIndex = Math.min(set.items.length - 1, reviewItemIndex + 1);
+      renderReviewItem();
+    });
+    testSetSelect.addEventListener('change', () => {
+      testItemIndex = 0;
+      loadTestItem();
+    });
+    checkTestBtn.addEventListener('click', checkTestItem);
+    nextTestBtn.addEventListener('click', () => {
+      const set = getStudySetById(testSetSelect.value);
+      if (!set || !set.items.length || !testPassedCurrent) return;
+      testItemIndex = Math.min(set.items.length - 1, testItemIndex + 1);
+      loadTestItem();
+    });
+    resetTestBtn.addEventListener('click', loadTestItem);
+    spellingSetSelect.addEventListener('change', () => {
+      spellingItemIndex = 0;
+      renderSpellingItem();
+    });
+    checkSpellingBtn.addEventListener('click', checkSpellingItem);
+    nextSpellingBtn.addEventListener('click', () => {
+      const set = getStudySetById(spellingSetSelect.value);
+      if (!set || !set.items.length || !spellingPassedCurrent) return;
+      spellingItemIndex = Math.min(set.items.length - 1, spellingItemIndex + 1);
+      renderSpellingItem();
+    });
+    spellingAnswerInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') checkSpellingItem();
+    });
+    pageTabs.forEach((tab) => {
+      tab.addEventListener('click', () => {
+        currentPageMode = tab.dataset.pageMode;
+        updatePageMode();
+      });
+    });
     newSetNameInput.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') createNewStudySet();
       if (e.key === 'Escape') closeNewSetModal();
@@ -1535,6 +2126,7 @@
 
     resizeCanvas();
     renderStudySetOptions();
+    updatePageMode();
     syncModeButtons();
     loadSentence();
     animate();
