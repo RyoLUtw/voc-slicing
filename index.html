@@ -342,6 +342,19 @@
       color: var(--muted);
     }
 
+    textarea {
+      width: 100%;
+      min-height: 220px;
+      padding: 12px 14px;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,0.16);
+      background: rgba(255,255,255,0.08);
+      color: var(--text);
+      font: 0.92rem Consolas, "Courier New", monospace;
+      outline: none;
+      resize: vertical;
+    }
+
     .reviewFilters,
     .testBar,
     .spellingBar {
@@ -695,8 +708,7 @@
             <option value="items-desc">Most Vocabulary</option>
             <option value="items-asc">Fewest Vocabulary</option>
           </select>
-          <button id="importSetBtn" type="button" class="secondary">Import CSV</button>
-          <input id="importSetInput" class="hidden" type="file" accept=".csv,text/csv" />
+          <button id="importSetBtn" type="button" class="secondary">Import JSON</button>
         </div>
         <div id="managementBrowser" class="managementBrowser"></div>
       </section>
@@ -798,6 +810,34 @@
     </div>
   </div>
 
+  <div id="jsonExportModal" class="modalBackdrop" aria-hidden="true">
+    <div class="modalCard">
+      <div>
+        <h2>Export Study Set JSON</h2>
+        <p id="jsonExportStatus" class="sub">JSON copied to clipboard.</p>
+      </div>
+      <textarea id="jsonExportText" readonly></textarea>
+      <div class="modalActions">
+        <button id="closeJsonExportBtn" type="button" class="secondary">Close</button>
+        <button id="copyJsonExportBtn" type="button">Copy JSON</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="jsonImportModal" class="modalBackdrop" aria-hidden="true">
+    <div class="modalCard">
+      <div>
+        <h2>Import Study Set JSON</h2>
+        <p id="jsonImportStatus" class="sub">Paste a study set JSON export.</p>
+      </div>
+      <textarea id="jsonImportText" placeholder="Paste exported study set JSON"></textarea>
+      <div class="modalActions">
+        <button id="cancelJsonImportBtn" type="button" class="secondary">Cancel</button>
+        <button id="confirmJsonImportBtn" type="button">Import JSON</button>
+      </div>
+    </div>
+  </div>
+
   <script>
     const pageTabs = document.querySelectorAll('.pageTab');
     const sliceTopbar = document.getElementById('sliceTopbar');
@@ -845,7 +885,6 @@
     const openFilterBtn = document.getElementById('openFilterBtn');
     const managementSortSelect = document.getElementById('managementSortSelect');
     const importSetBtn = document.getElementById('importSetBtn');
-    const importSetInput = document.getElementById('importSetInput');
     const managementBrowser = document.getElementById('managementBrowser');
     const managementFilterModal = document.getElementById('managementFilterModal');
     const filterDateFromInput = document.getElementById('filterDateFromInput');
@@ -855,6 +894,16 @@
     const clearFilterBtn = document.getElementById('clearFilterBtn');
     const cancelFilterBtn = document.getElementById('cancelFilterBtn');
     const applyFilterBtn = document.getElementById('applyFilterBtn');
+    const jsonExportModal = document.getElementById('jsonExportModal');
+    const jsonExportStatus = document.getElementById('jsonExportStatus');
+    const jsonExportText = document.getElementById('jsonExportText');
+    const closeJsonExportBtn = document.getElementById('closeJsonExportBtn');
+    const copyJsonExportBtn = document.getElementById('copyJsonExportBtn');
+    const jsonImportModal = document.getElementById('jsonImportModal');
+    const jsonImportStatus = document.getElementById('jsonImportStatus');
+    const jsonImportText = document.getElementById('jsonImportText');
+    const cancelJsonImportBtn = document.getElementById('cancelJsonImportBtn');
+    const confirmJsonImportBtn = document.getElementById('confirmJsonImportBtn');
     const chunkList = document.getElementById('chunkList');
     const statusEl = document.getElementById('status');
     const modeBar = document.getElementById('modeBar');
@@ -1263,7 +1312,7 @@
       actions.append(
         createActionButton('Duplicate', 'duplicate-set', 'secondary'),
         createActionButton('Delete', 'delete-set', 'secondary'),
-        createActionButton('Export CSV', 'export-set', ''),
+        createActionButton('Export JSON', 'export-set', ''),
         createActionButton('Collapse', 'toggle-set', 'secondary')
       );
 
@@ -1525,149 +1574,118 @@
       setStatus('Vocabulary removed from study set.', 'good');
     }
 
-    function csvEscape(value) {
-      const text = String(value ?? '');
-      return /[",\r\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
-    }
-
-    function studySetToCsv(set) {
-      const rowsForCsv = [['set_name', 'set_created_at', 'item_word', 'item_created_at', 'segment_index', 'segment_text', 'segment_note']];
-      for (const item of set.items) {
-        item.segments.forEach((segment, index) => {
-          rowsForCsv.push([
-            set.name,
-            set.createdAt,
-            item.word,
-            item.createdAt,
-            index,
-            segment.text,
-            segment.note || ''
-          ]);
-        });
-      }
-      return rowsForCsv.map((row) => row.map(csvEscape).join(',')).join('\r\n');
-    }
-
-    function parseCsv(text) {
-      const rowsForCsv = [];
-      let row = [];
-      let field = '';
-      let quoted = false;
-
-      for (let i = 0; i < text.length; i++) {
-        const char = text[i];
-        const next = text[i + 1];
-        if (quoted) {
-          if (char === '"' && next === '"') {
-            field += '"';
-            i++;
-          } else if (char === '"') {
-            quoted = false;
-          } else {
-            field += char;
-          }
-          continue;
-        }
-
-        if (char === '"') quoted = true;
-        else if (char === ',') {
-          row.push(field);
-          field = '';
-        } else if (char === '\n') {
-          row.push(field);
-          rowsForCsv.push(row);
-          row = [];
-          field = '';
-        } else if (char !== '\r') {
-          field += char;
-        }
-      }
-
-      if (field || row.length) {
-        row.push(field);
-        rowsForCsv.push(row);
-      }
-      return rowsForCsv;
+    function studySetToJson(set) {
+      return JSON.stringify({
+        format: 'vocabulary-slicing-study-set',
+        version: 1,
+        exportedAt: new Date().toISOString(),
+        studySet: set
+      }, null, 2);
     }
 
     function exportStudySet(setId) {
       const set = getStudySetById(setId);
       if (!set) return;
-      const blob = new Blob([studySetToCsv(set)], { type: 'text/csv;charset=utf-8' });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `${set.name.replace(/[^\w-]+/g, '_') || 'study-set'}.csv`;
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      URL.revokeObjectURL(url);
-      setStatus('Study set exported as CSV.', 'good');
+      openJsonExportModal(studySetToJson(set));
     }
 
-    function importStudySetFromCsv(text) {
-      const rowsForCsv = parseCsv(text).filter((row) => row.some((field) => field.trim()));
-      if (rowsForCsv.length < 2) {
-        setStatus('CSV file has no study set records.', 'bad');
-        return;
+    async function copyJsonExportText() {
+      jsonExportText.focus();
+      jsonExportText.select();
+      try {
+        if (navigator.clipboard?.writeText) {
+          await navigator.clipboard.writeText(jsonExportText.value);
+        } else {
+          document.execCommand('copy');
+        }
+        jsonExportStatus.textContent = 'JSON copied to clipboard.';
+        setStatus('Study set JSON copied.', 'good');
+      } catch {
+        jsonExportStatus.textContent = 'Copy failed. Select the JSON text and copy it manually.';
+        setStatus('Copy failed. JSON is ready to select.', 'bad');
       }
+    }
 
-      const headers = rowsForCsv[0].map((header) => header.trim());
-      const indexOf = (name) => headers.indexOf(name);
-      const setNameIndex = indexOf('set_name');
-      const setCreatedIndex = indexOf('set_created_at');
-      const wordIndex = indexOf('item_word');
-      const itemCreatedIndex = indexOf('item_created_at');
-      const segmentIndex = indexOf('segment_index');
-      const segmentTextIndex = indexOf('segment_text');
-      const segmentNoteIndex = indexOf('segment_note');
-      if ([setNameIndex, wordIndex, segmentTextIndex].some((index) => index < 0)) {
-        setStatus('CSV must include set_name, item_word, and segment_text columns.', 'bad');
+    function openJsonExportModal(jsonText) {
+      jsonExportText.value = jsonText;
+      jsonExportStatus.textContent = 'Copying JSON to clipboard...';
+      jsonExportModal.classList.add('open');
+      jsonExportModal.setAttribute('aria-hidden', 'false');
+      copyJsonExportText();
+    }
+
+    function closeJsonExportModal() {
+      jsonExportModal.classList.remove('open');
+      jsonExportModal.setAttribute('aria-hidden', 'true');
+    }
+
+    function openJsonImportModal() {
+      jsonImportText.value = '';
+      jsonImportStatus.textContent = 'Paste a study set JSON export.';
+      jsonImportModal.classList.add('open');
+      jsonImportModal.setAttribute('aria-hidden', 'false');
+      jsonImportText.focus();
+    }
+
+    function closeJsonImportModal() {
+      jsonImportModal.classList.remove('open');
+      jsonImportModal.setAttribute('aria-hidden', 'true');
+    }
+
+    function normalizeImportedStudySet(source) {
+      const now = Date.now();
+      const rawSet = source?.studySet || source;
+      if (!rawSet || typeof rawSet !== 'object') return null;
+      const rawItems = Array.isArray(rawSet.items) ? rawSet.items : [];
+      return {
+        id: `set-${now}`,
+        name: String(rawSet.name || 'Imported Study Set').trim() || 'Imported Study Set',
+        createdAt: rawSet.createdAt || new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        items: rawItems.map((item, itemIndex) => {
+          const word = String(item?.word || '').trim();
+          const rawSegments = Array.isArray(item?.segments) && item.segments.length
+            ? item.segments
+            : [{ text: word, note: '' }];
+          return {
+            id: `item-${now}-${itemIndex}`,
+            word: word || rawSegments.map((segment) => segment?.text || '').join(''),
+            createdAt: item?.createdAt || new Date().toISOString(),
+            segments: rawSegments.map((segment) => ({
+              text: String(segment?.text || ''),
+              note: String(segment?.note || '')
+            })).filter((segment) => segment.text || segment.note)
+          };
+        }).filter((item) => item.word || item.segments.length)
+      };
+    }
+
+    function importStudySetFromJsonText(text) {
+      let parsed;
+      try {
+        parsed = JSON.parse(text);
+      } catch {
+        jsonImportStatus.textContent = 'Invalid JSON. Paste a study set JSON export.';
+        setStatus('Invalid JSON import.', 'bad');
         return;
       }
 
       const studySets = loadStudySets();
-      const firstRecord = rowsForCsv[1];
-      const setName = makeUniqueSetName((firstRecord[setNameIndex] || 'Imported Study Set').trim(), studySets);
-      const importedSet = {
-        id: `set-${Date.now()}`,
-        name: setName,
-        createdAt: firstRecord[setCreatedIndex] || new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        items: []
-      };
-      const itemMap = new Map();
-
-      for (const record of rowsForCsv.slice(1)) {
-        const word = (record[wordIndex] || '').trim();
-        const segmentText = record[segmentTextIndex] || '';
-        if (!word && !segmentText) continue;
-        const key = `${word}\u0000${record[itemCreatedIndex] || ''}`;
-        if (!itemMap.has(key)) {
-          const item = {
-            id: `item-${Date.now()}-${itemMap.size}`,
-            word: word || segmentText,
-            createdAt: record[itemCreatedIndex] || new Date().toISOString(),
-            segments: []
-          };
-          itemMap.set(key, item);
-          importedSet.items.push(item);
-        }
-        itemMap.get(key).segments.push({
-          order: Number(record[segmentIndex] || 0),
-          text: segmentText,
-          note: record[segmentNoteIndex] || ''
-        });
+      const importedSet = normalizeImportedStudySet(parsed);
+      if (!importedSet || !importedSet.items.length) {
+        jsonImportStatus.textContent = 'JSON does not contain a study set with vocabulary.';
+        setStatus('JSON import has no vocabulary.', 'bad');
+        return;
       }
 
-      importedSet.items.forEach((item) => {
-        item.segments.sort((a, b) => a.order - b.order);
-        item.segments = item.segments.map(({ text, note }) => ({ text, note }));
-      });
+      importedSet.name = makeUniqueSetName(importedSet.name, studySets);
       studySets.push(importedSet);
+      expandedStudySetId = importedSet.id;
+      expandedVocabularyId = '';
       persistStudySets(studySets);
+      closeJsonImportModal();
       renderStudySetOptions(importedSet.id);
-      setStatus('CSV study set imported.', 'good');
+      setStatus('JSON study set imported.', 'good');
     }
 
     function openManagementFilterModal() {
@@ -2781,17 +2799,11 @@
     cancelFilterBtn.addEventListener('click', closeManagementFilterModal);
     applyFilterBtn.addEventListener('click', applyManagementFilters);
     clearFilterBtn.addEventListener('click', clearManagementFilters);
-    importSetBtn.addEventListener('click', () => importSetInput.click());
-    importSetInput.addEventListener('change', () => {
-      const file = importSetInput.files?.[0];
-      if (!file) return;
-      const reader = new FileReader();
-      reader.onload = () => {
-        importStudySetFromCsv(String(reader.result || ''));
-        importSetInput.value = '';
-      };
-      reader.readAsText(file);
-    });
+    closeJsonExportBtn.addEventListener('click', closeJsonExportModal);
+    copyJsonExportBtn.addEventListener('click', copyJsonExportText);
+    importSetBtn.addEventListener('click', openJsonImportModal);
+    cancelJsonImportBtn.addEventListener('click', closeJsonImportModal);
+    confirmJsonImportBtn.addEventListener('click', () => importStudySetFromJsonText(jsonImportText.value));
     managementBrowser.addEventListener('click', (e) => {
       const button = e.target.closest('[data-action]');
       if (!button) return;
@@ -2904,6 +2916,12 @@
     });
     managementFilterModal.addEventListener('click', (e) => {
       if (e.target === managementFilterModal) closeManagementFilterModal();
+    });
+    jsonExportModal.addEventListener('click', (e) => {
+      if (e.target === jsonExportModal) closeJsonExportModal();
+    });
+    jsonImportModal.addEventListener('click', (e) => {
+      if (e.target === jsonImportModal) closeJsonImportModal();
     });
 
     resizeCanvas();
