@@ -370,7 +370,7 @@
 
     .testBar,
     .spellingBar {
-      grid-template-columns: minmax(220px, 320px) auto auto auto;
+      grid-template-columns: minmax(180px, 280px) minmax(220px, 1fr) auto auto auto;
     }
 
     /* Grid items default to min-width:auto, which can force these mode panels
@@ -679,6 +679,7 @@
         </div>
         <div class="spellingBar">
           <select id="spellingSetSelect"></select>
+          <select id="spellingItemSelect"></select>
           <button id="checkSpellingBtn" type="button">Check</button>
           <button id="nextSpellingBtn" type="button" class="secondary">Next</button>
           <div id="spellingCounter" class="sub"></div>
@@ -722,6 +723,7 @@
         </div>
         <div class="testBar">
           <select id="testSetSelect"></select>
+          <select id="testItemSelect"></select>
           <button id="checkTestBtn" type="button">Check</button>
           <button id="nextTestBtn" type="button" class="secondary">Next</button>
           <button id="resetTestBtn" type="button" class="secondary">Reset Item</button>
@@ -872,10 +874,12 @@
     const reviewCounter = document.getElementById('reviewCounter');
     const reviewContent = document.getElementById('reviewContent');
     const testSetSelect = document.getElementById('testSetSelect');
+    const testItemSelect = document.getElementById('testItemSelect');
     const checkTestBtn = document.getElementById('checkTestBtn');
     const nextTestBtn = document.getElementById('nextTestBtn');
     const resetTestBtn = document.getElementById('resetTestBtn');
     const spellingSetSelect = document.getElementById('spellingSetSelect');
+    const spellingItemSelect = document.getElementById('spellingItemSelect');
     const checkSpellingBtn = document.getElementById('checkSpellingBtn');
     const nextSpellingBtn = document.getElementById('nextSpellingBtn');
     const spellingCounter = document.getElementById('spellingCounter');
@@ -1764,6 +1768,27 @@
       reviewSetSelect.disabled = false;
     }
 
+    function renderVocabularyItemOptions(select, set, selectedIndex) {
+      select.innerHTML = '';
+      if (!set || !set.items.length) {
+        const option = document.createElement('option');
+        option.value = '';
+        option.textContent = 'No vocabulary in this set';
+        select.appendChild(option);
+        select.disabled = true;
+        return;
+      }
+
+      set.items.forEach((item, index) => {
+        const option = document.createElement('option');
+        option.value = String(index);
+        option.textContent = `${index + 1}. ${item.word || 'Untitled vocabulary'}`;
+        select.appendChild(option);
+      });
+      select.disabled = false;
+      select.value = String(Math.max(0, Math.min(set.items.length - 1, selectedIndex)));
+    }
+
     function renderReviewItem() {
       const set = getStudySetById(reviewSetSelect.value);
       reviewContent.innerHTML = '';
@@ -1797,11 +1822,13 @@
     function loadTestItem() {
       const set = getStudySetById(testSetSelect.value);
       if (!set || !set.items.length) {
+        renderVocabularyItemOptions(testItemSelect, set, 0);
         nextTestBtn.disabled = true;
         return;
       }
 
       testItemIndex = Math.max(0, Math.min(set.items.length - 1, testItemIndex));
+      renderVocabularyItemOptions(testItemSelect, set, testItemIndex);
       const item = set.items[testItemIndex];
       testPassedCurrent = false;
       sentenceInput.value = item.word;
@@ -1868,11 +1895,13 @@
       const set = getStudySetById(spellingSetSelect.value);
       spellingNotes.innerHTML = '';
       if (!set || !set.items.length) {
+        renderVocabularyItemOptions(spellingItemSelect, set, 0);
         spellingCounter.textContent = 'No vocabulary in this study set.';
         return;
       }
 
       spellingItemIndex = Math.max(0, Math.min(set.items.length - 1, spellingItemIndex));
+      renderVocabularyItemOptions(spellingItemSelect, set, spellingItemIndex);
       const item = set.items[spellingItemIndex];
       spellingCounter.textContent = `${spellingItemIndex + 1} / ${set.items.length}`;
       for (const segment of item.segments) {
@@ -2771,6 +2800,10 @@
       testItemIndex = 0;
       loadTestItem();
     });
+    testItemSelect.addEventListener('change', () => {
+      testItemIndex = Number(testItemSelect.value) || 0;
+      loadTestItem();
+    });
     checkTestBtn.addEventListener('click', checkTestItem);
     nextTestBtn.addEventListener('click', () => {
       const set = getStudySetById(testSetSelect.value);
@@ -2781,6 +2814,10 @@
     resetTestBtn.addEventListener('click', loadTestItem);
     spellingSetSelect.addEventListener('change', () => {
       spellingItemIndex = 0;
+      renderSpellingItem();
+    });
+    spellingItemSelect.addEventListener('change', () => {
+      spellingItemIndex = Number(spellingItemSelect.value) || 0;
       renderSpellingItem();
     });
     checkSpellingBtn.addEventListener('click', checkSpellingItem);
