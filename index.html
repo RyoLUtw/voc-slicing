@@ -509,50 +509,6 @@
       transform-origin: left center;
     }
 
-    .iconBtn {
-      width: 42px;
-      height: 42px;
-      padding: 0;
-      border-radius: 12px;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      color: var(--text);
-      background: rgba(15,23,42,0.72);
-      border: 1px solid rgba(255,255,255,0.16);
-    }
-
-    .iconBtn svg {
-      width: 18px;
-      height: 18px;
-      stroke: currentColor;
-      fill: none;
-      stroke-width: 2;
-      stroke-linecap: round;
-      stroke-linejoin: round;
-    }
-
-    .iconBtn:hover {
-      background: rgba(30,41,59,0.96);
-      transform: translateY(-1px);
-    }
-
-    .editToggle,
-    .editActions {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      flex-shrink: 0;
-    }
-
-    .rowControl:not(.is-editing) .editActions {
-      display: none;
-    }
-
-    .rowControl.is-editing .editToggle {
-      display: none;
-    }
-
     .info {
       display: grid;
       grid-template-columns: 1.2fr 0.8fr;
@@ -931,8 +887,6 @@
     const ANNOTATION_MAX_W = 320;
     const ANNOTATION_MAX_FONT = 24;
     const ANNOTATION_MIN_FONT = 14;
-    const NOTE_BUTTON_W = 42;
-    const NOTE_BUTTON_GAP = 8;
     const LASSO_CLOSE_RADIUS = 28;
     const GESTURE_POINT_LIMIT = 96;
     const MIN_SEGMENT_LENGTH = 12;
@@ -977,8 +931,6 @@
         end,
         hasNote: false,
         noteText: '',
-        isEditing: false,
-        editDraft: '',
         w: 0,
         h: STRIP_H,
         layout: null
@@ -1004,8 +956,7 @@
 
     function getChunkNoteLayout(chunk, rowViewportW = getWorkWidth() - ROW_MARGIN * 2 - ROW_FRAME * 2) {
       if (!chunk.hasNote) return null;
-      const sourceText = chunk.isEditing ? chunk.editDraft : chunk.noteText;
-      const text = (sourceText || '').trim();
+      const text = (chunk.noteText || '').trim();
 
       if (!text) {
         return {
@@ -1221,7 +1172,6 @@
         cursor += words.length;
         chunk.hasNote = true;
         chunk.noteText = segment.note || '';
-        chunk.editDraft = chunk.noteText;
         return chunk;
       }).filter((chunk) => chunk.words.length);
       return chunks.length ? chunks.map((chunk) => createRowFromChunks([chunk])) : buildInitialRows(item.word || 'vocabulary');
@@ -1990,9 +1940,9 @@
     function getRowContentWidth(row) {
       return getRowItems(row).reduce((sum, item, i) => {
         const note = getChunkNoteLayout(item);
-        const extra = note && !row.noteBelow ? ANNOTATION_GAP + note.width + NOTE_BUTTON_GAP + NOTE_BUTTON_W : 0;
+        const extra = note && !row.noteBelow ? ANNOTATION_GAP + note.width : 0;
         const itemWidth = note && row.noteBelow
-          ? Math.max(item.w, note.width + NOTE_BUTTON_GAP + NOTE_BUTTON_W)
+          ? Math.max(item.w, note.width)
           : item.w;
         return sum + itemWidth + extra + (i ? SPLIT_GAP : 0);
       }, 0);
@@ -2001,7 +1951,7 @@
     function getRowInlineContentWidth(row) {
       return getRowItems(row).reduce((sum, item, i) => {
         const note = getChunkNoteLayout(item);
-        const extra = note ? ANNOTATION_GAP + note.width + NOTE_BUTTON_GAP + NOTE_BUTTON_W : 0;
+        const extra = note ? ANNOTATION_GAP + note.width : 0;
         return sum + item.w + extra + (i ? SPLIT_GAP : 0);
       }, 0);
     }
@@ -2176,9 +2126,9 @@
               baseFontSize: note.fontSize
             };
             if (row.noteBelow) {
-              cursor += Math.max(chunk.w, note.width + NOTE_BUTTON_GAP + NOTE_BUTTON_W) * scale;
+              cursor += Math.max(chunk.w, note.width) * scale;
             } else {
-              cursor += (chunk.w + ANNOTATION_GAP + note.width + NOTE_BUTTON_GAP + NOTE_BUTTON_W) * scale;
+              cursor += (chunk.w + ANNOTATION_GAP + note.width) * scale;
             }
           } else {
             chunk.noteRect = null;
@@ -2447,10 +2397,8 @@
       const rightChunk = createChunk(chunk.words.slice(splitIndex), chunk.start + splitIndex, chunk.end);
       leftChunk.hasNote = true;
       leftChunk.noteText = '';
-      leftChunk.editDraft = '';
       rightChunk.hasNote = true;
       rightChunk.noteText = '';
-      rightChunk.editDraft = '';
 
       if (row.type === 'chunk') {
         rows.splice(rowIndex, 1, createRowFromChunks([leftChunk]), createRowFromChunks([rightChunk]));
@@ -2500,7 +2448,6 @@
         .map((item) => (item.noteText || '').trim())
         .filter(Boolean)
         .join(' | ');
-      mergedChunk.editDraft = mergedChunk.noteText;
 
       const selectedIds = new Set(uniqueChunks.map((item) => item.id));
       const mergedRow = createRowFromChunks([mergedChunk]);
@@ -2584,15 +2531,9 @@
       dragMode = null;
     }
 
-    function iconSvg(name) {
-      if (name === 'edit') return '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>';
-      if (name === 'save') return '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h13l3 3v13H4z"/><path d="M8 4v6h8V4"/><path d="M8 20v-6h8v6"/></svg>';
-      return '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>';
-    }
-
     function createRowControl(chunk) {
       const control = document.createElement('div');
-      control.className = 'rowControl' + (chunk.isEditing ? ' is-editing' : '');
+      control.className = 'rowControl';
       control.dataset.chunkId = String(chunk.id);
 
       const inputWrap = document.createElement('div');
@@ -2600,37 +2541,11 @@
       const input = document.createElement('input');
       input.className = 'rowEditInput';
       input.type = 'text';
-      input.value = chunk.editDraft || chunk.noteText || '';
-      input.readOnly = !chunk.isEditing;
+      input.value = chunk.noteText || '';
+      input.setAttribute('aria-label', 'Slice note');
       inputWrap.appendChild(input);
 
-      const editToggle = document.createElement('div');
-      editToggle.className = 'editToggle';
-      const editBtn = document.createElement('button');
-      editBtn.type = 'button';
-      editBtn.className = 'iconBtn';
-      editBtn.dataset.action = 'edit';
-      editBtn.setAttribute('aria-label', 'Edit row');
-      editBtn.innerHTML = iconSvg('edit');
-      editToggle.appendChild(editBtn);
-
-      const editActions = document.createElement('div');
-      editActions.className = 'editActions';
-      const saveBtn = document.createElement('button');
-      saveBtn.type = 'button';
-      saveBtn.className = 'iconBtn';
-      saveBtn.dataset.action = 'save';
-      saveBtn.setAttribute('aria-label', 'Save row');
-      saveBtn.innerHTML = iconSvg('save');
-      const cancelBtn = document.createElement('button');
-      cancelBtn.type = 'button';
-      cancelBtn.className = 'iconBtn';
-      cancelBtn.dataset.action = 'cancel';
-      cancelBtn.setAttribute('aria-label', 'Cancel editing');
-      cancelBtn.innerHTML = iconSvg('cancel');
-      editActions.append(saveBtn, cancelBtn);
-
-      control.append(inputWrap, editToggle, editActions);
+      control.append(inputWrap);
       return control;
     }
 
@@ -2675,43 +2590,6 @@
         }
       }
       return null;
-    }
-
-    function getChunkControlElement(chunk) {
-      return rowControlsLayer.querySelector(`.rowControl[data-chunk-id="${chunk.id}"]`);
-    }
-
-    function toggleChunkEditing(chunk, editing) {
-      chunk.isEditing = editing;
-      const control = getChunkControlElement(chunk);
-      if (!control) {
-        renderRowControls();
-        return toggleChunkEditing(chunk, editing);
-      }
-
-      const input = control.querySelector('.rowEditInput');
-      if (editing) chunk.editDraft = chunk.noteText || '';
-      if (input) {
-        input.value = chunk.editDraft;
-        input.readOnly = !editing;
-      }
-      control.classList.toggle('is-editing', editing);
-      if (!editing) return;
-      if (input) {
-        input.focus();
-        input.select();
-      }
-    }
-
-    function saveChunkEdit(chunk) {
-      chunk.isEditing = false;
-      const control = getChunkControlElement(chunk);
-      if (control) control.classList.remove('is-editing');
-      const input = control?.querySelector('.rowEditInput');
-      if (input) input.readOnly = true;
-      chunk.noteText = chunk.editDraft.trim();
-      layoutRows();
-      setStatus(chunk.noteText ? 'Split note updated.' : 'Split note cleared.', 'good');
     }
 
     function loadSentence() {
@@ -2890,47 +2768,14 @@
       setStatus(`${btn.textContent} mode selected.`);
     });
 
-    rowControlsLayer.addEventListener('click', (e) => {
-      const button = e.target.closest('[data-action]');
-      if (!button) return;
-      const control = button.closest('.rowControl');
-      if (!control) return;
-      const chunk = getChunkById(Number(control.dataset.chunkId));
-      if (!chunk) return;
-      const action = button.dataset.action;
-      if (action === 'edit') toggleChunkEditing(chunk, true);
-      if (action === 'save') saveChunkEdit(chunk);
-      if (action === 'cancel') {
-        chunk.editDraft = chunk.noteText || '';
-        toggleChunkEditing(chunk, false);
-      }
-    });
-
     rowControlsLayer.addEventListener('input', (e) => {
       const input = e.target.closest('.rowEditInput');
       if (!input) return;
       const control = input.closest('.rowControl');
       const chunk = getChunkById(Number(control.dataset.chunkId));
       if (chunk) {
-        chunk.editDraft = input.value;
+        chunk.noteText = input.value;
         layoutRows(false);
-      }
-    });
-
-    rowControlsLayer.addEventListener('keydown', (e) => {
-      const input = e.target.closest('.rowEditInput');
-      if (!input) return;
-      const control = input.closest('.rowControl');
-      const chunk = getChunkById(Number(control.dataset.chunkId));
-      if (!chunk) return;
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        saveChunkEdit(chunk);
-      }
-      if (e.key === 'Escape') {
-        e.preventDefault();
-        chunk.editDraft = chunk.noteText || '';
-        toggleChunkEditing(chunk, false);
       }
     });
 
