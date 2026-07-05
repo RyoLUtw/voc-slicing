@@ -2788,7 +2788,10 @@
 
     window.addEventListener('resize', () => {
       resizeCanvas();
-      layoutRows();
+      // Opening the mobile keyboard resizes the visual viewport. Rebuilding the
+      // controls here would replace the focused input and immediately dismiss
+      // that keyboard, so only recalculate and reposition the existing nodes.
+      layoutRows(false);
     });
     newSetModal.addEventListener('click', (e) => {
       if (e.target === newSetModal) closeNewSetModal();
