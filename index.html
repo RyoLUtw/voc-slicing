@@ -198,6 +198,17 @@
       border: 1px solid rgba(255,255,255,0.12);
     }
 
+    button.danger {
+      background: rgba(239,68,68,0.16);
+      color: #fecaca;
+      border: 1px solid rgba(248,113,113,0.42);
+    }
+
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
     .stageWrap {
       padding: 14px;
       position: relative;
@@ -233,7 +244,7 @@
     }
 
     .managementToolbar {
-      grid-template-columns: minmax(180px, 1fr) auto minmax(180px, 220px) auto auto;
+      grid-template-columns: minmax(180px, 1fr) auto minmax(180px, 220px) auto auto auto;
       align-items: center;
     }
 
@@ -693,6 +704,7 @@
           </select>
           <button id="importSetBtn" type="button" class="secondary">Import JSON</button>
           <button id="exportAllSetsBtn" type="button">Export All</button>
+          <button id="deleteAllSetsBtn" type="button" class="danger">Delete All</button>
         </div>
         <div id="managementBrowser" class="managementBrowser"></div>
       </section>
@@ -838,6 +850,19 @@
     </div>
   </div>
 
+  <div id="deleteAllSetsModal" class="modalBackdrop" aria-hidden="true">
+    <div class="modalCard" role="dialog" aria-modal="true" aria-labelledby="deleteAllSetsTitle">
+      <div>
+        <h2 id="deleteAllSetsTitle">Delete All Study Sets?</h2>
+        <p id="deleteAllSetsMessage" class="sub">This permanently removes every study set and its vocabulary.</p>
+      </div>
+      <div class="modalActions">
+        <button id="cancelDeleteAllSetsBtn" type="button" class="secondary">Cancel</button>
+        <button id="confirmDeleteAllSetsBtn" type="button" class="danger">Delete All</button>
+      </div>
+    </div>
+  </div>
+
   <div id="jsonImportModal" class="modalBackdrop" aria-hidden="true">
     <div class="modalCard">
       <div>
@@ -903,6 +928,7 @@
     const managementSortSelect = document.getElementById('managementSortSelect');
     const importSetBtn = document.getElementById('importSetBtn');
     const exportAllSetsBtn = document.getElementById('exportAllSetsBtn');
+    const deleteAllSetsBtn = document.getElementById('deleteAllSetsBtn');
     const managementBrowser = document.getElementById('managementBrowser');
     const managementFilterModal = document.getElementById('managementFilterModal');
     const filterDateFromInput = document.getElementById('filterDateFromInput');
@@ -920,6 +946,10 @@
     const exportAllModal = document.getElementById('exportAllModal');
     const cancelExportAllBtn = document.getElementById('cancelExportAllBtn');
     const confirmExportAllBtn = document.getElementById('confirmExportAllBtn');
+    const deleteAllSetsModal = document.getElementById('deleteAllSetsModal');
+    const deleteAllSetsMessage = document.getElementById('deleteAllSetsMessage');
+    const cancelDeleteAllSetsBtn = document.getElementById('cancelDeleteAllSetsBtn');
+    const confirmDeleteAllSetsBtn = document.getElementById('confirmDeleteAllSetsBtn');
     const jsonImportModal = document.getElementById('jsonImportModal');
     const jsonImportStatus = document.getElementById('jsonImportStatus');
     const jsonImportText = document.getElementById('jsonImportText');
@@ -1152,6 +1182,8 @@
       }
 
       saveToSetBtn.disabled = !studySets.length;
+      exportAllSetsBtn.disabled = !studySets.length;
+      deleteAllSetsBtn.disabled = !studySets.length;
       const targetId = selectedName
         ? (studySets.find((set) => set.name === selectedName || set.id === selectedName)?.id || '')
         : (studySets[0]?.id || '');
@@ -1659,6 +1691,42 @@
     function closeExportAllModal() {
       exportAllModal.classList.remove('open');
       exportAllModal.setAttribute('aria-hidden', 'true');
+    }
+
+    function openDeleteAllSetsModal() {
+      const count = loadStudySets().length;
+      if (!count) {
+        setStatus('There are no study sets to delete.', 'bad');
+        return;
+      }
+      deleteAllSetsMessage.textContent = `This permanently removes all ${count} study set${count === 1 ? '' : 's'} and their vocabulary.`;
+      deleteAllSetsModal.classList.add('open');
+      deleteAllSetsModal.setAttribute('aria-hidden', 'false');
+      confirmDeleteAllSetsBtn.focus();
+    }
+
+    function closeDeleteAllSetsModal() {
+      deleteAllSetsModal.classList.remove('open');
+      deleteAllSetsModal.setAttribute('aria-hidden', 'true');
+    }
+
+    function deleteAllStudySets() {
+      const count = loadStudySets().length;
+      if (!count) {
+        closeDeleteAllSetsModal();
+        setStatus('There are no study sets to delete.', 'bad');
+        return;
+      }
+      persistStudySets([]);
+      expandedStudySetId = '';
+      expandedVocabularyId = '';
+      lastSavedSetId = '';
+      reviewItemIndex = 0;
+      testItemIndex = 0;
+      spellingItemIndex = 0;
+      closeDeleteAllSetsModal();
+      renderStudySetOptions();
+      setStatus(`${count} study set${count === 1 ? '' : 's'} deleted.`, 'good');
     }
 
     function downloadBlob(blob, fileName) {
@@ -2973,6 +3041,9 @@
     exportAllSetsBtn.addEventListener('click', openExportAllModal);
     cancelExportAllBtn.addEventListener('click', closeExportAllModal);
     confirmExportAllBtn.addEventListener('click', exportAllStudySets);
+    deleteAllSetsBtn.addEventListener('click', openDeleteAllSetsModal);
+    cancelDeleteAllSetsBtn.addEventListener('click', closeDeleteAllSetsModal);
+    confirmDeleteAllSetsBtn.addEventListener('click', deleteAllStudySets);
     cancelJsonImportBtn.addEventListener('click', closeJsonImportModal);
     confirmJsonImportBtn.addEventListener('click', () => importStudySetFromJsonText(jsonImportText.value));
     jsonImportFile.addEventListener('change', loadJsonImportFile);
@@ -3064,6 +3135,9 @@
     });
     exportAllModal.addEventListener('click', (e) => {
       if (e.target === exportAllModal) closeExportAllModal();
+    });
+    deleteAllSetsModal.addEventListener('click', (e) => {
+      if (e.target === deleteAllSetsModal) closeDeleteAllSetsModal();
     });
     jsonImportModal.addEventListener('click', (e) => {
       if (e.target === jsonImportModal) closeJsonImportModal();
