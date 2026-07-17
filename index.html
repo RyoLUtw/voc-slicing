@@ -468,6 +468,32 @@
       gap: 10px;
     }
 
+    .exportChoices {
+      display: grid;
+      gap: 10px;
+    }
+
+    .exportChoice {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr);
+      gap: 10px;
+      align-items: start;
+      padding: 12px;
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 12px;
+      background: rgba(255,255,255,0.06);
+      cursor: pointer;
+    }
+
+    .exportChoice input {
+      margin-top: 3px;
+    }
+
+    .exportChoiceText {
+      display: grid;
+      gap: 4px;
+    }
+
     canvas {
       width: 100%;
       height: 520px;
@@ -666,6 +692,7 @@
             <option value="items-asc">Fewest Vocabulary</option>
           </select>
           <button id="importSetBtn" type="button" class="secondary">Import JSON</button>
+          <button id="exportAllSetsBtn" type="button">Export All</button>
         </div>
         <div id="managementBrowser" class="managementBrowser"></div>
       </section>
@@ -782,13 +809,43 @@
     </div>
   </div>
 
+  <div id="exportAllModal" class="modalBackdrop" aria-hidden="true">
+    <div class="modalCard" role="dialog" aria-modal="true" aria-labelledby="exportAllTitle">
+      <div>
+        <h2 id="exportAllTitle">Export All Study Sets</h2>
+        <p class="sub">Choose how to package every study set.</p>
+      </div>
+      <div class="exportChoices">
+        <label class="exportChoice">
+          <input type="radio" name="exportAllFormat" value="zip" checked />
+          <span class="exportChoiceText">
+            <strong>Individual JSON files in a ZIP</strong>
+            <span class="sub">Creates one JSON file per study set and downloads them together.</span>
+          </span>
+        </label>
+        <label class="exportChoice">
+          <input type="radio" name="exportAllFormat" value="collection" />
+          <span class="exportChoiceText">
+            <strong>Collection JSON</strong>
+            <span class="sub">Creates one JSON file containing all study sets.</span>
+          </span>
+        </label>
+      </div>
+      <div class="modalActions">
+        <button id="cancelExportAllBtn" type="button" class="secondary">Cancel</button>
+        <button id="confirmExportAllBtn" type="button">Export</button>
+      </div>
+    </div>
+  </div>
+
   <div id="jsonImportModal" class="modalBackdrop" aria-hidden="true">
     <div class="modalCard">
       <div>
         <h2>Import Study Set JSON</h2>
-        <p id="jsonImportStatus" class="sub">Paste a study set JSON export.</p>
+        <p id="jsonImportStatus" class="sub">Choose or paste a study set or collection JSON export.</p>
       </div>
-      <textarea id="jsonImportText" placeholder="Paste exported study set JSON"></textarea>
+      <input id="jsonImportFile" type="file" accept="application/json,.json" />
+      <textarea id="jsonImportText" placeholder="Paste exported study set or collection JSON"></textarea>
       <div class="modalActions">
         <button id="cancelJsonImportBtn" type="button" class="secondary">Cancel</button>
         <button id="confirmJsonImportBtn" type="button">Import JSON</button>
@@ -845,6 +902,7 @@
     const openFilterBtn = document.getElementById('openFilterBtn');
     const managementSortSelect = document.getElementById('managementSortSelect');
     const importSetBtn = document.getElementById('importSetBtn');
+    const exportAllSetsBtn = document.getElementById('exportAllSetsBtn');
     const managementBrowser = document.getElementById('managementBrowser');
     const managementFilterModal = document.getElementById('managementFilterModal');
     const filterDateFromInput = document.getElementById('filterDateFromInput');
@@ -859,9 +917,13 @@
     const jsonExportText = document.getElementById('jsonExportText');
     const closeJsonExportBtn = document.getElementById('closeJsonExportBtn');
     const copyJsonExportBtn = document.getElementById('copyJsonExportBtn');
+    const exportAllModal = document.getElementById('exportAllModal');
+    const cancelExportAllBtn = document.getElementById('cancelExportAllBtn');
+    const confirmExportAllBtn = document.getElementById('confirmExportAllBtn');
     const jsonImportModal = document.getElementById('jsonImportModal');
     const jsonImportStatus = document.getElementById('jsonImportStatus');
     const jsonImportText = document.getElementById('jsonImportText');
+    const jsonImportFile = document.getElementById('jsonImportFile');
     const cancelJsonImportBtn = document.getElementById('cancelJsonImportBtn');
     const confirmJsonImportBtn = document.getElementById('confirmJsonImportBtn');
     const chunkList = document.getElementById('chunkList');
@@ -1537,6 +1599,15 @@
       }, null, 2);
     }
 
+    function studySetCollectionToJson(studySets) {
+      return JSON.stringify({
+        format: 'vocabulary-slicing-study-set-collection',
+        version: 1,
+        exportedAt: new Date().toISOString(),
+        studySets
+      }, null, 2);
+    }
+
     function exportStudySet(setId) {
       const set = getStudySetById(setId);
       if (!set) return;
@@ -1573,12 +1644,174 @@
       jsonExportModal.setAttribute('aria-hidden', 'true');
     }
 
+    function openExportAllModal() {
+      const studySets = loadStudySets();
+      if (!studySets.length) {
+        setStatus('There are no study sets to export.', 'bad');
+        return;
+      }
+      const defaultOption = exportAllModal.querySelector('input[value="zip"]');
+      if (defaultOption) defaultOption.checked = true;
+      exportAllModal.classList.add('open');
+      exportAllModal.setAttribute('aria-hidden', 'false');
+    }
+
+    function closeExportAllModal() {
+      exportAllModal.classList.remove('open');
+      exportAllModal.setAttribute('aria-hidden', 'true');
+    }
+
+    function downloadBlob(blob, fileName) {
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+
+    function safeExportFileName(name, fallback = 'study-set') {
+      const cleaned = String(name || '')
+        .trim()
+        .replace(/[<>:"/\\|?*\u0000-\u001f]/g, '-')
+        .replace(/[. ]+$/g, '')
+        .slice(0, 100);
+      return cleaned || fallback;
+    }
+
+    function makeCrc32Table() {
+      return Array.from({ length: 256 }, (_, index) => {
+        let value = index;
+        for (let bit = 0; bit < 8; bit++) {
+          value = (value & 1) ? (0xedb88320 ^ (value >>> 1)) : (value >>> 1);
+        }
+        return value >>> 0;
+      });
+    }
+
+    const CRC32_TABLE = makeCrc32Table();
+
+    function crc32(bytes) {
+      let crc = 0xffffffff;
+      for (const byte of bytes) crc = CRC32_TABLE[(crc ^ byte) & 0xff] ^ (crc >>> 8);
+      return (crc ^ 0xffffffff) >>> 0;
+    }
+
+    function pushUint16(target, value) {
+      target.push(value & 0xff, (value >>> 8) & 0xff);
+    }
+
+    function pushUint32(target, value) {
+      target.push(value & 0xff, (value >>> 8) & 0xff, (value >>> 16) & 0xff, (value >>> 24) & 0xff);
+    }
+
+    function getZipDateTime(date = new Date()) {
+      const year = Math.max(1980, date.getFullYear());
+      return {
+        time: (date.getHours() << 11) | (date.getMinutes() << 5) | Math.floor(date.getSeconds() / 2),
+        date: ((year - 1980) << 9) | ((date.getMonth() + 1) << 5) | date.getDate()
+      };
+    }
+
+    function createStoredZip(files) {
+      const encoder = new TextEncoder();
+      const localParts = [];
+      const centralParts = [];
+      let offset = 0;
+
+      for (const file of files) {
+        const nameBytes = encoder.encode(file.name);
+        const contentBytes = encoder.encode(file.content);
+        const checksum = crc32(contentBytes);
+        const stamp = getZipDateTime();
+        const localHeader = [];
+        pushUint32(localHeader, 0x04034b50);
+        pushUint16(localHeader, 20);
+        pushUint16(localHeader, 0x0800);
+        pushUint16(localHeader, 0);
+        pushUint16(localHeader, stamp.time);
+        pushUint16(localHeader, stamp.date);
+        pushUint32(localHeader, checksum);
+        pushUint32(localHeader, contentBytes.length);
+        pushUint32(localHeader, contentBytes.length);
+        pushUint16(localHeader, nameBytes.length);
+        pushUint16(localHeader, 0);
+        localParts.push(new Uint8Array(localHeader), nameBytes, contentBytes);
+
+        const centralHeader = [];
+        pushUint32(centralHeader, 0x02014b50);
+        pushUint16(centralHeader, 20);
+        pushUint16(centralHeader, 20);
+        pushUint16(centralHeader, 0x0800);
+        pushUint16(centralHeader, 0);
+        pushUint16(centralHeader, stamp.time);
+        pushUint16(centralHeader, stamp.date);
+        pushUint32(centralHeader, checksum);
+        pushUint32(centralHeader, contentBytes.length);
+        pushUint32(centralHeader, contentBytes.length);
+        pushUint16(centralHeader, nameBytes.length);
+        pushUint16(centralHeader, 0);
+        pushUint16(centralHeader, 0);
+        pushUint16(centralHeader, 0);
+        pushUint16(centralHeader, 0);
+        pushUint32(centralHeader, 0);
+        pushUint32(centralHeader, offset);
+        centralParts.push(new Uint8Array(centralHeader), nameBytes);
+        offset += localHeader.length + nameBytes.length + contentBytes.length;
+      }
+
+      const centralSize = centralParts.reduce((total, part) => total + part.length, 0);
+      const endRecord = [];
+      pushUint32(endRecord, 0x06054b50);
+      pushUint16(endRecord, 0);
+      pushUint16(endRecord, 0);
+      pushUint16(endRecord, files.length);
+      pushUint16(endRecord, files.length);
+      pushUint32(endRecord, centralSize);
+      pushUint32(endRecord, offset);
+      pushUint16(endRecord, 0);
+      return new Blob([...localParts, ...centralParts, new Uint8Array(endRecord)], { type: 'application/zip' });
+    }
+
+    function getUniqueExportFiles(studySets) {
+      const usedNames = new Set();
+      return studySets.map((set, index) => {
+        const base = safeExportFileName(set.name, `study-set-${index + 1}`);
+        let fileName = `${base}.json`;
+        let suffix = 2;
+        while (usedNames.has(fileName.toLowerCase())) fileName = `${base}-${suffix++}.json`;
+        usedNames.add(fileName.toLowerCase());
+        return { name: fileName, content: studySetToJson(set) };
+      });
+    }
+
+    function exportAllStudySets() {
+      const studySets = loadStudySets();
+      if (!studySets.length) {
+        closeExportAllModal();
+        setStatus('There are no study sets to export.', 'bad');
+        return;
+      }
+      const format = exportAllModal.querySelector('input[name="exportAllFormat"]:checked')?.value || 'zip';
+      const date = new Date().toISOString().slice(0, 10);
+      if (format === 'collection') {
+        const json = studySetCollectionToJson(studySets);
+        downloadBlob(new Blob([json], { type: 'application/json' }), `study-sets-${date}.json`);
+      } else {
+        downloadBlob(createStoredZip(getUniqueExportFiles(studySets)), `study-sets-${date}.zip`);
+      }
+      closeExportAllModal();
+      setStatus(`${studySets.length} study set${studySets.length === 1 ? '' : 's'} exported.`, 'good');
+    }
+
     function openJsonImportModal() {
       jsonImportText.value = '';
-      jsonImportStatus.textContent = 'Paste a study set JSON export.';
+      jsonImportFile.value = '';
+      jsonImportStatus.textContent = 'Choose or paste a study set or collection JSON export.';
       jsonImportModal.classList.add('open');
       jsonImportModal.setAttribute('aria-hidden', 'false');
-      jsonImportText.focus();
     }
 
     function closeJsonImportModal() {
@@ -1586,13 +1819,16 @@
       jsonImportModal.setAttribute('aria-hidden', 'true');
     }
 
-    function normalizeImportedStudySet(source) {
+    function normalizeImportedStudySet(source, uniqueIndex = 0) {
       const now = Date.now();
       const rawSet = source?.studySet || source;
-      if (!rawSet || typeof rawSet !== 'object') return null;
-      const rawItems = Array.isArray(rawSet.items) ? rawSet.items : [];
+      if (!rawSet || typeof rawSet !== 'object' || Array.isArray(rawSet)) return null;
+      if (!Array.isArray(rawSet.items) && !Array.isArray(rawSet.words)) return null;
+      const rawItems = Array.isArray(rawSet.items)
+        ? rawSet.items
+        : rawSet.words.map((word) => ({ word, segments: [{ text: word, note: '' }] }));
       return {
-        id: `set-${now}`,
+        id: `set-${now}-${uniqueIndex}`,
         name: String(rawSet.name || 'Imported Study Set').trim() || 'Imported Study Set',
         createdAt: rawSet.createdAt || new Date().toISOString(),
         updatedAt: new Date().toISOString(),
@@ -1602,7 +1838,7 @@
             ? item.segments
             : [{ text: word, note: '' }];
           return {
-            id: `item-${now}-${itemIndex}`,
+            id: `item-${now}-${uniqueIndex}-${itemIndex}`,
             word: word || rawSegments.map((segment) => segment?.text || '').join(''),
             createdAt: item?.createdAt || new Date().toISOString(),
             segments: rawSegments.map((segment) => ({
@@ -1619,27 +1855,44 @@
       try {
         parsed = JSON.parse(text);
       } catch {
-        jsonImportStatus.textContent = 'Invalid JSON. Paste a study set JSON export.';
+        jsonImportStatus.textContent = 'Invalid JSON. Choose or paste a study set or collection export.';
         setStatus('Invalid JSON import.', 'bad');
         return;
       }
 
       const studySets = loadStudySets();
-      const importedSet = normalizeImportedStudySet(parsed);
-      if (!importedSet || !importedSet.items.length) {
-        jsonImportStatus.textContent = 'JSON does not contain a study set with vocabulary.';
-        setStatus('JSON import has no vocabulary.', 'bad');
+      const rawSets = Array.isArray(parsed?.studySets) ? parsed.studySets : [parsed];
+      const importedSets = rawSets
+        .map((source, index) => normalizeImportedStudySet(source, index))
+        .filter(Boolean);
+      if (!importedSets.length) {
+        jsonImportStatus.textContent = 'JSON does not contain a valid study set or collection.';
+        setStatus('JSON import has no study sets.', 'bad');
         return;
       }
 
-      importedSet.name = makeUniqueSetName(importedSet.name, studySets);
-      studySets.push(importedSet);
-      expandedStudySetId = importedSet.id;
+      for (const importedSet of importedSets) {
+        importedSet.name = makeUniqueSetName(importedSet.name, studySets);
+        studySets.push(importedSet);
+      }
+      const lastImportedSet = importedSets[importedSets.length - 1];
+      expandedStudySetId = lastImportedSet.id;
       expandedVocabularyId = '';
       persistStudySets(studySets);
       closeJsonImportModal();
-      renderStudySetOptions(importedSet.id);
-      setStatus('JSON study set imported.', 'good');
+      renderStudySetOptions(lastImportedSet.id);
+      setStatus(`${importedSets.length} study set${importedSets.length === 1 ? '' : 's'} imported.`, 'good');
+    }
+
+    async function loadJsonImportFile() {
+      const file = jsonImportFile.files?.[0];
+      if (!file) return;
+      try {
+        jsonImportText.value = await file.text();
+        jsonImportStatus.textContent = `${file.name} is ready to import.`;
+      } catch {
+        jsonImportStatus.textContent = 'Could not read that file. Paste the JSON instead.';
+      }
     }
 
     function openManagementFilterModal() {
@@ -2717,8 +2970,12 @@
     closeJsonExportBtn.addEventListener('click', closeJsonExportModal);
     copyJsonExportBtn.addEventListener('click', copyJsonExportText);
     importSetBtn.addEventListener('click', openJsonImportModal);
+    exportAllSetsBtn.addEventListener('click', openExportAllModal);
+    cancelExportAllBtn.addEventListener('click', closeExportAllModal);
+    confirmExportAllBtn.addEventListener('click', exportAllStudySets);
     cancelJsonImportBtn.addEventListener('click', closeJsonImportModal);
     confirmJsonImportBtn.addEventListener('click', () => importStudySetFromJsonText(jsonImportText.value));
+    jsonImportFile.addEventListener('change', loadJsonImportFile);
     managementBrowser.addEventListener('click', (e) => {
       const button = e.target.closest('[data-action]');
       if (!button) return;
@@ -2804,6 +3061,9 @@
     });
     jsonExportModal.addEventListener('click', (e) => {
       if (e.target === jsonExportModal) closeJsonExportModal();
+    });
+    exportAllModal.addEventListener('click', (e) => {
+      if (e.target === exportAllModal) closeExportAllModal();
     });
     jsonImportModal.addEventListener('click', (e) => {
       if (e.target === jsonImportModal) closeJsonImportModal();
